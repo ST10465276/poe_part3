@@ -3,7 +3,7 @@ Brief description of the system Race_Day is an full-stack web-based event manage
 
 Part 3 of this system involves how MVC will power the front-end RaceDay system and have a web application the users can interact with and Part2 will work together with Part 3 as the backend with API to handle all the data operations,enforce role-based access and fully tested.
 
-#YouTube Link:
+#YouTube Link: https://youtu.be/eqCrSOjSmwM
 
 #CI/CD Pipeline Screenshot:
 <img width="1917" height="1020" alt="CI_CD" src="https://github.com/user-attachments/assets/8419e8fc-c597-4532-989d-6642c47f4580" />
