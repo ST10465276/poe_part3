@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../part_2API/part_2API.csproj" />
+  <Project Path="part3_poe.csproj" />
+</Solution>
