@@ -1,0 +1,469 @@
+﻿.landing {
+    font-family: 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
+    color: #333333;
+    background-color: #ffffff;
+}
+
+.landing_intro {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    padding: 6rem 1.5rem;
+    background-image: url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1920&q=80');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.landing_intro_overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(128, 128, 128, 0.6);
+    z-index: 1;
+}
+
+.landing_intro_content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+    text-align: center;
+    color: #ffffff;
+}
+
+.landing_badge {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+}
+
+.landing_title {
+    font-size: 3.25rem;
+    line-height: 1.1;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 1.25rem;
+    letter-spacing: -0.5px;
+}
+
+.landing_subtitle {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: #e6e6e6;
+    margin: 0 auto 2.25rem;
+    max-width: 620px;
+}
+
+.landing_actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.landing_actions_center {
+    justify-content: center;
+}
+
+.landing_btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.5rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    max-width: 100%;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+    .landing_btn span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+.landing_btn_primary {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
+}
+
+    .landing_btn_primary:hover {
+        background-color: #e6e6e6;
+        border-color: #e6e6e6;
+    }
+
+.landing_btn_outline {
+    background-color: transparent;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+}
+
+    .landing_btn_outline:hover {
+        background-color: #ffffff;
+        color: #000000;
+    }
+
+.landing_roles,
+.landing_flow,
+.landing_faq {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem;
+    box-sizing: border-box;
+}
+
+.landing_section_head {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.landing_section_title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.3px;
+}
+
+.landing_section_text {
+    font-size: 0.95rem;
+    color: #777777;
+    margin: 0;
+}
+
+.landing_roles_grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.landing_role_card {
+    display: flex;
+    flex-direction: column;
+    background-color: #f7f7f7;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.landing_role_head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+    .landing_role_head i {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background-color: #000000;
+        color: #ffffff;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+.landing_role_title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0;
+}
+
+.landing_role_steps {
+    margin: 0 0 1.75rem;
+    padding-left: 1.25rem;
+    color: #555555;
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+
+    .landing_role_steps li {
+        margin-bottom: 0.75rem;
+    }
+
+    .landing_role_steps strong {
+        color: #000000;
+    }
+
+.landing_role_link {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #000000;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: gap 0.15s ease;
+}
+
+    .landing_role_link:hover {
+        gap: 0.7rem;
+    }
+
+.landing_flow_grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+.landing_flow_step {
+    background-color: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 1.75rem 1.5rem;
+    box-sizing: border-box;
+}
+
+.landing_flow_num {
+    display: inline-block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #cccccc;
+    margin-bottom: 0.75rem;
+}
+
+.landing_flow_title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #000000;
+    margin: 0 0 0.5rem;
+}
+
+.landing_flow_text {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #777777;
+    margin: 0;
+}
+
+.landing_faq {
+    padding: 5rem 1.5rem;
+}
+
+    .landing_faq .landing_section_head {
+        margin-bottom: 2.5rem;
+    }
+
+.landing_faq_list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.landing_faq_item {
+    background-color: #f7f7f7;
+    border: 1px solid #ececec;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: background-color 0.15s ease;
+}
+
+    .landing_faq_item[open] {
+        background-color: #ffffff;
+    }
+
+.landing_faq_question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #000000;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+    .landing_faq_question::-webkit-details-marker {
+        display: none;
+    }
+
+    .landing_faq_question i {
+        font-size: 0.85rem;
+        color: #666666;
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+    }
+
+.landing_faq_item[open] .landing_faq_question i {
+    transform: rotate(45deg);
+}
+
+.landing_faq_answer {
+    padding: 0 1.5rem 1.25rem;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: #555555;
+    margin: 0;
+}
+
+.landing_cta {
+    position: relative;
+    padding: 6rem 1.5rem;
+    background-image: url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1920&q=80');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.landing_cta_overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(128, 128, 128, 0.6);
+    z-index: 1;
+}
+
+.landing_cta_inner {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.landing_cta_title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 0.75rem;
+    letter-spacing: -0.3px;
+}
+
+.landing_cta_text {
+    font-size: 0.95rem;
+    color: #e6e6e6;
+    margin: 0 0 2rem;
+}
+
+.landing_cta .landing_btn_primary {
+    background-color: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+}
+
+    .landing_cta .landing_btn_primary:hover {
+        background-color: #e6e6e6;
+        border-color: #e6e6e6;
+    }
+
+.landing_cta .landing_btn_outline {
+    background-color: transparent;
+    color: #ffffff;
+    border-color: #ffffff;
+}
+
+    .landing_cta .landing_btn_outline:hover {
+        background-color: #ffffff;
+        color: #000000;
+    }
+
+@media (max-width: 1024px) {
+    .landing_flow_grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .landing_intro {
+        min-height: 70vh;
+        padding: 4.5rem 1.25rem;
+    }
+
+    .landing_title {
+        font-size: 2.4rem;
+    }
+
+    .landing_roles_grid {
+        grid-template-columns: 1fr;
+    }
+
+    .landing_faq {
+        padding: 4rem 1.25rem;
+    }
+
+    .landing_cta {
+        padding: 4.5rem 1.25rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .landing_intro {
+        min-height: 75vh;
+        padding: 3.5rem 1rem;
+    }
+
+    .landing_title {
+        font-size: 1.9rem;
+    }
+
+    .landing_subtitle {
+        font-size: 0.95rem;
+    }
+
+    .landing_roles,
+    .landing_flow,
+    .landing_faq,
+    .landing_cta {
+        padding: 2.5rem 1rem;
+    }
+
+    .landing_flow_grid {
+        grid-template-columns: 1fr;
+    }
+
+    .landing_actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .landing_btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .landing_section_title,
+    .landing_cta_title {
+        font-size: 1.6rem;
+    }
+
+    .landing_faq_question {
+        padding: 1rem 1.25rem;
+        font-size: 0.95rem;
+    }
+
+    .landing_faq_answer {
+        padding: 0 1.25rem 1rem;
+    }
+}
