@@ -6,3 +6,4 @@ Part 3 of this system involves how MVC will power the front-end RaceDay system a
 #YouTube Link:
 
 #CI/CD Pipeline Screenshot:
+<img width="1917" height="1020" alt="CI_CD" src="https://github.com/user-attachments/assets/8419e8fc-c597-4532-989d-6642c47f4580" />
