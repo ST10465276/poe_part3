@@ -1,0 +1,125 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@await Html.PartialAsync("_menu")
+
+<link rel="stylesheet" href="~/css/landing.css" asp-append-version="true" />
+
+<main class="landing">
+
+    <section class="landing_intro">
+        <div class="landing_intro_overlay"></div>
+        <div class="landing_intro_content">
+            <h1 class="landing_title">Create a marathon.<br>Let people join.</h1>
+            <p class="landing_subtitle">
+                Organizers create events with their own categories.
+                Participants log in, join an event, and take part, all in one place.
+            </p>
+            <div class="landing_actions">
+                <a class="landing_btn landing_btn_primary" href="/register">
+                    <i class="fa fa-user-plus"></i>
+                    <span>Create an Account</span>
+                </a>
+                <a class="landing_btn landing_btn_outline" href="/Home/events">
+                    <i class="fa fa-calendar"></i>
+                    <span>See Events</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="landing_roles">
+        <div class="landing_section_head">
+            <h2 class="landing_section_title">Two roles. One platform.</h2>
+            <p class="landing_section_text">Whether you run the race or run the event, the flow is simple.</p>
+        </div>
+
+        <div class="landing_roles_grid">
+            <article class="landing_role_card">
+                <div class="landing_role_head">
+                    <i class="fa fa-flag"></i>
+                    <h3 class="landing_role_title">For Organizers</h3>
+                </div>
+                <ol class="landing_role_steps">
+                    <li><strong>Create an event</strong> - name, date, location, details.</li>
+                    <li><strong>Add categories</strong> - distance, age group, or anything your race needs.</li>
+                    <li><strong>Open registration</strong> - participants join the event and pick a category.</li>
+                    <li><strong>See who joined</strong> - track participants per event and category.</li>
+                </ol>
+                <a class="landing_role_link" href="register">
+                    Start organizing <i class="fa fa-arrow-right"></i>
+                </a>
+            </article>
+
+            <article class="landing_role_card">
+                <div class="landing_role_head">
+                    <i class="fa fa-users"></i>
+                    <h3 class="landing_role_title">For Participants</h3>
+                </div>
+                <ol class="landing_role_steps">
+                    <li><strong>Create an account</strong> - log in as a participant.</li>
+                    <li><strong>Browse events</strong> - find a marathon that's open.</li>
+                    <li><strong>Join the event</strong> - pick your category and sign up.</li>
+                    <li><strong>Take part</strong> - you're in. Show up and run.</li>
+                </ol>
+                <a class="landing_role_link" href="/Home/events">
+                    Find an event <i class="fa fa-arrow-right"></i>
+                </a>
+            </article>
+        </div>
+    </section>
+
+    <section class="landing_flow">
+        <div class="landing_section_head">
+            <h2 class="landing_section_title">How it works</h2>
+            <p class="landing_section_text">From event creation to a participant crossing the line.</p>
+        </div>
+
+        <div class="landing_flow_grid">
+            <div class="landing_flow_step">
+                <span class="landing_flow_num">01</span>
+                <h3 class="landing_flow_title">Organizer creates</h3>
+                <p class="landing_flow_text">An event is created with its marathon categories.</p>
+            </div>
+            <div class="landing_flow_step">
+                <span class="landing_flow_num">02</span>
+                <h3 class="landing_flow_title">Event is published</h3>
+                <p class="landing_flow_text">The event becomes visible to users on the platform.</p>
+            </div>
+            <div class="landing_flow_step">
+                <span class="landing_flow_num">03</span>
+                <h3 class="landing_flow_title">User joins</h3>
+                <p class="landing_flow_text">A logged-in user joins and becomes a participant.</p>
+            </div>
+            <div class="landing_flow_step">
+                <span class="landing_flow_num">04</span>
+                <h3 class="landing_flow_title">Category picked</h3>
+                <p class="landing_flow_text">The participant chooses a category and is confirmed.</p>
+            </div>
+        </div>
+    </section>
+
+  
+
+    <section class="landing_cta">
+        <div class="landing_cta_overlay"></div>
+        <div class="landing_cta_inner">
+            <h2 class="landing_cta_title">Ready to get started?</h2>
+            <p class="landing_cta_text">Create an account to organize an event or join one as a participant.</p>
+            <div class="landing_actions landing_actions_center">
+                <a class="landing_btn landing_btn_primary" href="register">
+                    <i class="fa fa-user-plus"></i>
+                    <span>Register</span>
+                </a>
+                <a class="landing_btn landing_btn_outline" href="login">
+                    <i class="fa fa-sign-in"></i>
+                    <span>Login</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+@await Html.PartialAsync("_footer")

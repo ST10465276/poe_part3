@@ -1,0 +1,1237 @@
+﻿@using System.Data.SqlClient
+@using part_2API.backend
+
+@{
+    Layout = null;
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userId = Context.Session.GetString("user_id") ?? "0";
+    int organizer_id = Int32.Parse(userId);
+
+    manage_events events_manager = new manage_events();
+    manage_categories categories_manager = new manage_categories();
+    manage_results results_manager = new manage_results();
+
+    var myEvents = new List<Dictionary<string, object>>();
+    var myCategories = new List<Dictionary<string, object>>();
+    var allEnrolments = new List<Dictionary<string, object>>();
+
+    SqlDataReader read_events = events_manager.view_eventsSite(organizer_id);
+    try
+    {
+        while (read_events.Read())
+        {
+            myEvents.Add(new Dictionary<string, object>
+            {
+                { "eventID", read_events["eventID"] },
+                { "eventName", read_events["eventName"] },
+                { "date", read_events["date"] },
+                { "location", read_events["location"] },
+                { "eventType", read_events["eventType"] },
+                { "category_id", read_events["category_id"] },
+                { "image", read_events["image"] }
+            });
+        }
+    }
+    finally { read_events.Close(); }
+
+    SqlDataReader read_categories = categories_manager.view_categoriesSite(organizer_id);
+    try
+    {
+        while (read_categories.Read())
+        {
+            myCategories.Add(new Dictionary<string, object>
+            {
+                { "id", read_categories["id"] },
+                { "name", read_categories["name"] }
+            });
+        }
+    }
+    finally { read_categories.Close(); }
+
+    foreach (var ev in myEvents)
+    {
+        int evId = Convert.ToInt32(ev["eventID"]);
+        SqlDataReader read_enrolments = results_manager.view_enrolments_by_eventSite(evId, organizer_id);
+
+        try
+        {
+            while (read_enrolments.Read())
+            {
+                bool hasResult = read_enrolments["resultID"] != DBNull.Value;
+
+                allEnrolments.Add(new Dictionary<string, object>
+                {
+                    { "eventID", evId },
+                    { "enrolmentID", read_enrolments["enrolmentID"] },
+                    { "enrolmentDate", read_enrolments["enrolmentDate"] },
+                    { "fullname", read_enrolments["fullname"] },
+                    { "email", read_enrolments["email"] },
+                    { "resultID", hasResult ? read_enrolments["resultID"] : DBNull.Value },
+                    { "finishTime", hasResult ? read_enrolments["finishTime"] : DBNull.Value },
+                    { "finishPosition", hasResult ? read_enrolments["finishPosition"] : DBNull.Value }
+                });
+            }
+        }
+        finally { read_enrolments.Close(); }
+    }
+
+    var successMsg = TempData["ResultSuccess"] as string;
+    var errorMsg = TempData["ResultError"] as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background: #ffffff;
+            }
+
+            body {
+                font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+                background: #ffffff;
+                color: #333;
+                padding: 0;
+                margin: 0;
+            }
+
+            .participants_banner {
+                position: relative;
+                width: 100%;
+                margin: 0 0 2.5rem;
+                background-image: url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                padding: 5rem 2rem;
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .participants_banner_overlay {
+                position: absolute;
+                inset: 0;
+                background-color: rgba(128, 128, 128, 0.6);
+                z-index: 1;
+            }
+
+            .participants_banner_content {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                text-align: left;
+                color: #ffffff;
+            }
+
+                .participants_banner_content h1 {
+                    color: #ffffff;
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    line-height: 1.1;
+                    margin: 0 0 0.6rem;
+                    letter-spacing: -0.5px;
+                }
+
+                .participants_banner_content .sub {
+                    color: #e6e6e6;
+                    font-size: 1.05rem;
+                    line-height: 1.7;
+                    margin: 0;
+                }
+
+            .participants_content {
+                padding: 0 2rem 2rem;
+            }
+
+            .participants_flash {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.85rem 1rem;
+                border-radius: 5px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+                line-height: 1.5;
+            }
+
+            .participants_flash_success {
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            .participants_flash_error {
+                background: #fbeaea;
+                color: #c0392b;
+            }
+
+            .participants_flash i {
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+
+            .participants_head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1.5rem;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .participants_head_left {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .participants_title {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0;
+            }
+
+            .participants_count {
+                font-size: 0.75rem;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .participants_back_btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                padding: 0.5rem 1rem;
+                background: #f2f2f2;
+                color: #333;
+                border: 1px solid #e5e5e5;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                transition: background-color 0.15s ease;
+            }
+
+                .participants_back_btn:hover {
+                    background: #e6e6e6;
+                }
+
+            .category_grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.25rem;
+            }
+
+            .category_tile {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1.5rem;
+                background: #ffffff;
+                border: 1px solid #ececec;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: inherit;
+                text-align: left;
+                transition: border-color 0.15s ease, background-color 0.15s ease;
+            }
+
+                .category_tile:hover {
+                    border-color: #000;
+                    background: #fafafa;
+                }
+
+            .category_tile_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 42px;
+                height: 42px;
+                border-radius: 5px;
+                background: #000;
+                color: #fff;
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .category_tile_name {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.35rem;
+            }
+
+            .category_tile_count {
+                font-size: 0.72rem;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin: 0;
+            }
+
+            .participants_table_wrap {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .participants_table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.875rem;
+            }
+
+                .participants_table thead {
+                    background: #000;
+                    color: #ffffff;
+                    text-align: left;
+                }
+
+                .participants_table th {
+                    padding: 0.85rem 1rem;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    white-space: nowrap;
+                }
+
+                .participants_table td {
+                    padding: 0.85rem 1rem;
+                    border-bottom: 1px solid #ececec;
+                    color: #555;
+                    vertical-align: middle;
+                }
+
+                .participants_table tbody tr:hover {
+                    background: #fafafa;
+                }
+
+                .participants_table tbody tr:last-child td {
+                    border-bottom: none;
+                }
+
+            .participants_id_cell {
+                font-family: 'SF Mono', Menlo, monospace;
+                font-size: 0.8rem;
+                color: #888;
+            }
+
+            .participants_name_cell {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 600;
+                color: #000;
+            }
+
+            .participants_name_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: #000;
+                color: #fff;
+                font-size: 0.8rem;
+                flex-shrink: 0;
+            }
+
+            .event_row_image {
+                width: 60px;
+                height: 44px;
+                border-radius: 5px;
+                overflow: hidden;
+                background: #f2f2f2;
+                flex-shrink: 0;
+            }
+
+                .event_row_image img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
+                }
+
+            .event_row_cell {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 600;
+                color: #000;
+            }
+
+            .event_row_btn {
+                background: none;
+                border: none;
+                padding: 0;
+                font-family: inherit;
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: #000;
+                cursor: pointer;
+                text-align: left;
+                text-decoration: underline;
+            }
+
+                .event_row_btn:hover {
+                    color: #333;
+                }
+
+            .participants_badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.7rem;
+                font-weight: 600;
+                padding: 0.25rem 0.6rem;
+                border-radius: 5px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+            }
+
+            .participants_badge_finished {
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            .participants_badge_pending {
+                background: #f2f2f2;
+                color: #888;
+            }
+
+            .participants_actions {
+                display: inline-flex;
+                gap: 0.35rem;
+            }
+
+            .participants_action_btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.35rem;
+                padding: 0.4rem 0.7rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+                transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .participants_action_record {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .participants_action_record:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .participants_action_edit {
+                background: #f2f2f2;
+                color: #333;
+                border-color: #e5e5e5;
+            }
+
+                .participants_action_edit:hover {
+                    background: #e6e6e6;
+                }
+
+            .participants_action_delete {
+                background: #fbeaea;
+                color: #c0392b;
+                border-color: #f5d0d0;
+            }
+
+                .participants_action_delete:hover {
+                    background: #f7d5d5;
+                }
+
+            .participants_action_view {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .participants_action_view:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .participants_empty {
+                padding: 3rem 1rem;
+                text-align: center;
+                color: #888;
+                font-size: 0.9rem;
+            }
+
+                .participants_empty i {
+                    display: block;
+                    font-size: 1.75rem;
+                    color: #ccc;
+                    margin-bottom: 0.75rem;
+                }
+
+            .result_modal {
+                position: fixed;
+                inset: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0, 0, 0, 0.55);
+                z-index: 500;
+                padding: 1rem;
+            }
+
+            .result_modal_open {
+                display: flex;
+            }
+
+            .result_modal_box {
+                background: #ffffff;
+                border-radius: 8px;
+                max-width: 460px;
+                width: 100%;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+                animation: result_modal_in 0.25s ease;
+                position: relative;
+                padding: 2rem;
+            }
+
+            @@keyframes result_modal_in {
+                from {
+                    opacity: 0;
+                    transform: translateY(12px) scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            .result_modal_close {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: #f2f2f2;
+                color: #555;
+                border: none;
+                cursor: pointer;
+                font-size: 0.9rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+                .result_modal_close:hover {
+                    background: #e6e6e6;
+                }
+
+            .result_modal_head {
+                margin-bottom: 1.5rem;
+            }
+
+            .result_modal_title {
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.35rem;
+            }
+
+            .result_modal_text {
+                font-size: 0.85rem;
+                color: #777;
+                line-height: 1.6;
+                margin: 0;
+            }
+
+            .result_field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+                margin-bottom: 1rem;
+            }
+
+            .result_label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #333;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .result_input {
+                width: 100%;
+                padding: 0.75rem 0.9rem;
+                border: 1px solid #e5e5e5;
+                border-radius: 5px;
+                background: #fff;
+                color: #333;
+                font-family: inherit;
+                font-size: 0.9rem;
+                outline: none;
+                box-sizing: border-box;
+            }
+
+                .result_input:focus {
+                    border-color: #000;
+                }
+
+            .result_modal_actions {
+                display: flex;
+                gap: 0.75rem;
+                margin-top: 1.5rem;
+            }
+
+            .result_modal_btn {
+                flex: 1;
+                padding: 0.75rem 1rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.8rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+            }
+
+            .result_modal_btn_light {
+                background: #fff;
+                color: #555;
+                border-color: #e5e5e5;
+            }
+
+                .result_modal_btn_light:hover {
+                    background: #f2f2f2;
+                }
+
+            .result_modal_btn_dark {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .result_modal_btn_dark:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            @@media (max-width: 900px) {
+                .category_grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+
+            @@media (max-width: 700px) {
+                .participants_banner {
+                    padding: 3.5rem 1.25rem;
+                }
+
+                .participants_banner_content h1 {
+                    font-size: 1.9rem;
+                }
+
+                .participants_table thead {
+                    display: none;
+                }
+
+                .participants_table,
+                .participants_table tbody,
+                .participants_table tr,
+                .participants_table td {
+                    display: block;
+                    width: 100%;
+                }
+
+                    .participants_table tr {
+                        border-bottom: 1px solid #ececec;
+                        padding: 0.85rem 0;
+                    }
+
+                    .participants_table td {
+                        border-bottom: none;
+                        padding: 0.35rem 1rem;
+                    }
+
+                        .participants_table td::before {
+                            content: attr(data-label);
+                            display: inline-block;
+                            font-weight: 600;
+                            color: #000;
+                            min-width: 110px;
+                            font-size: 0.72rem;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+            }
+
+            @@media (max-width: 600px) {
+                .participants_banner {
+                    padding: 3rem 1rem;
+                }
+
+                .participants_banner_content h1 {
+                    font-size: 1.6rem;
+                }
+
+                .participants_content {
+                    padding: 0 1rem 1.5rem;
+                }
+
+                .category_grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <section class="participants_banner">
+        <div class="participants_banner_overlay"></div>
+        <div class="participants_banner_content">
+            <h1>Participants</h1>
+            <p class="sub">Pick a category, then an event, then manage the results of everyone enrolled.</p>
+        </div>
+    </section>
+
+    <div class="participants_content">
+
+        @if (!string.IsNullOrEmpty(successMsg))
+        {
+            <div class="participants_flash participants_flash_success">
+                <i class="fa fa-check-circle"></i>
+                <span>@successMsg</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="participants_flash participants_flash_error">
+                <i class="fa fa-exclamation-circle"></i>
+                <span>@errorMsg</span>
+            </div>
+        }
+
+        <div id="categoryStage">
+            <div class="participants_head">
+                <div class="participants_head_left">
+                    <h2 class="participants_title">Choose a category</h2>
+                    <span class="participants_count">@myCategories.Count categories</span>
+                </div>
+            </div>
+
+            @if (myCategories.Count == 0)
+            {
+                <div class="participants_empty">
+                    <i class="fa fa-tags"></i>
+                    You have no categories yet.
+                </div>
+            }
+            else
+            {
+                <div class="category_grid">
+                    @foreach (var c in myCategories)
+                    {
+                        int catId = Convert.ToInt32(c["id"]);
+                        int countInCat = myEvents.Count(e => Convert.ToInt32(e["category_id"]) == catId);
+
+                        <button type="button"
+                                class="category_tile"
+                                data-category-id="@catId"
+                                data-category-name="@c["name"]">
+                            <span class="category_tile_icon"><i class="fa fa-tags"></i></span>
+                            <h3 class="category_tile_name">@c["name"]</h3>
+                            <p class="category_tile_count">@countInCat event@(countInCat == 1 ? "" : "s")</p>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+
+        <div id="eventStage" style="display: none;">
+            <div class="participants_head">
+                <div class="participants_head_left">
+                    <h2 class="participants_title" id="eventStageTitle">Events</h2>
+                    <span class="participants_count" id="eventStageCount">0 events</span>
+                </div>
+                <button type="button" class="participants_back_btn" id="backToCategories">
+                    <i class="fa fa-arrow-left"></i>
+                    <span>Back to categories</span>
+                </button>
+            </div>
+
+            <div class="participants_table_wrap">
+                <table class="participants_table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Type</th>
+                            <th>Participants</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventTableBody"></tbody>
+                </table>
+            </div>
+
+            <div id="eventStageEmpty" style="display: none;" class="participants_empty">
+                <i class="fa fa-flag"></i>
+                No events in this category yet.
+            </div>
+        </div>
+
+        <div id="participantsStage" style="display: none;">
+            <div class="participants_head">
+                <div class="participants_head_left">
+                    <h2 class="participants_title" id="participantsStageTitle">Participants</h2>
+                    <span class="participants_count" id="participantsStageCount">0 total</span>
+                </div>
+                <button type="button" class="participants_back_btn" id="backToEvents">
+                    <i class="fa fa-arrow-left"></i>
+                    <span>Back to events</span>
+                </button>
+            </div>
+
+            <div class="participants_table_wrap">
+                <table class="participants_table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Participant</th>
+                            <th>Email</th>
+                            <th>Enrolled on</th>
+                            <th>Status</th>
+                            <th>Finish time</th>
+                            <th>Position</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="participantsTableBody"></tbody>
+                </table>
+            </div>
+
+            <div id="participantsStageEmpty" style="display: none;" class="participants_empty">
+                <i class="fa fa-users"></i>
+                No enrolments found for this event.
+            </div>
+        </div>
+
+    </div>
+
+    <div class="result_modal" id="recordResultModal">
+        <div class="result_modal_box">
+            <button type="button" class="result_modal_close" onclick="closeRecordModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="result_modal_head">
+                <h3 class="result_modal_title">Record result</h3>
+                <p class="result_modal_text">Enter the finish time and position for <strong id="recordParticipantName">this participant</strong>.</p>
+            </div>
+
+            <form method="post" asp-controller="Home" asp-action="StoreResult">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="enrolmentId" id="recordEnrolmentId" value="0">
+                <input type="hidden" name="eventId" id="recordEventId" value="0">
+
+                <div class="result_field">
+                    <label class="result_label">Finish time (HH:MM:SS)</label>
+                    <input class="result_input" type="time" name="finishTime" step="1" required>
+                </div>
+
+                <div class="result_field">
+                    <label class="result_label">Finish position</label>
+                    <input class="result_input" type="number" name="finishPosition" min="1" required>
+                </div>
+
+                <div class="result_modal_actions">
+                    <button type="button" class="result_modal_btn result_modal_btn_light" onclick="closeRecordModal()">Cancel</button>
+                    <button type="submit" class="result_modal_btn result_modal_btn_dark">
+                        <i class="fa fa-check"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="result_modal" id="updateResultModal">
+        <div class="result_modal_box">
+            <button type="button" class="result_modal_close" onclick="closeUpdateModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="result_modal_head">
+                <h3 class="result_modal_title">Update result</h3>
+                <p class="result_modal_text">Change the finish time or position for <strong id="updateParticipantName">this participant</strong>.</p>
+            </div>
+
+            <form method="post" asp-controller="Home" asp-action="UpdateResult">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="resultId" id="updateResultId" value="0">
+                <input type="hidden" name="eventId" id="updateEventId" value="0">
+
+                <div class="result_field">
+                    <label class="result_label">Finish time (HH:MM:SS)</label>
+                    <input class="result_input" type="time" name="finishTime" id="updateFinishTime" step="1" required>
+                </div>
+
+                <div class="result_field">
+                    <label class="result_label">Finish position</label>
+                    <input class="result_input" type="number" name="finishPosition" id="updateFinishPosition" min="1" required>
+                </div>
+
+                <div class="result_modal_actions">
+                    <button type="button" class="result_modal_btn result_modal_btn_light" onclick="closeUpdateModal()">Cancel</button>
+                    <button type="submit" class="result_modal_btn result_modal_btn_dark">
+                        <i class="fa fa-check"></i> Save changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="result_modal" id="deleteResultModal">
+        <div class="result_modal_box">
+            <button type="button" class="result_modal_close" onclick="closeDeleteModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="result_modal_head">
+                <h3 class="result_modal_title">Delete result</h3>
+                <p class="result_modal_text">Are you sure you want to delete the result for <strong id="deleteParticipantName">this participant</strong>? This cannot be undone.</p>
+            </div>
+
+            <form method="post" asp-controller="Home" asp-action="DeleteResult">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="resultId" id="deleteResultId" value="0">
+                <input type="hidden" name="eventId" id="deleteEventId" value="0">
+
+                <div class="result_modal_actions">
+                    <button type="button" class="result_modal_btn result_modal_btn_light" onclick="closeDeleteModal()">Cancel</button>
+                    <button type="submit" class="result_modal_btn result_modal_btn_dark">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+            (function () {
+                const STORAGE_KEY = 'participants_stage_state';
+
+                const placeholders = [
+                    "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=800&q=80"
+                ];
+
+                const allEvents = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(myEvents.Select(e => new
+                            {
+                                eventID = Convert.ToInt32(e["eventID"]),
+                                eventName = e["eventName"]?.ToString() ?? "",
+                                date = Convert.ToDateTime(e["date"]).ToString("dd MMM yyyy"),
+                                location = e["location"]?.ToString() ?? "",
+                                eventType = e["eventType"]?.ToString() ?? "",
+                                categoryId = Convert.ToInt32(e["category_id"]),
+                                image = e["image"]?.ToString() ?? ""
+                        })));
+
+                const allEnrolments = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(allEnrolments.Select(en => new
+                            {
+                                eventID = Convert.ToInt32(en["eventID"]),
+                                enrolmentID = Convert.ToInt32(en["enrolmentID"]),
+                                enrolmentDate = Convert.ToDateTime(en["enrolmentDate"]).ToString("dd MMM yyyy"),
+                                fullname = en["fullname"]?.ToString() ?? "",
+                                email = en["email"]?.ToString() ?? "",
+                                resultID = en["resultID"] == DBNull.Value ? 0 : Convert.ToInt32(en["resultID"]),
+                                finishTime = en["finishTime"] == DBNull.Value ? "" : ((TimeSpan)en["finishTime"]).ToString(@"hh\:mm\:ss"),
+                                finishPosition = en["finishPosition"] == DBNull.Value ? 0 : Convert.ToInt32(en["finishPosition"])
+                        })));
+
+                const categoryStage = document.getElementById('categoryStage');
+                const eventStage = document.getElementById('eventStage');
+                const participantsStage = document.getElementById('participantsStage');
+
+                const eventStageTitle = document.getElementById('eventStageTitle');
+                const eventStageCount = document.getElementById('eventStageCount');
+                const eventTableBody = document.getElementById('eventTableBody');
+                const eventStageEmpty = document.getElementById('eventStageEmpty');
+
+                const participantsStageTitle = document.getElementById('participantsStageTitle');
+                const participantsStageCount = document.getElementById('participantsStageCount');
+                const participantsTableBody = document.getElementById('participantsTableBody');
+                const participantsStageEmpty = document.getElementById('participantsStageEmpty');
+
+                let currentCategory = null;
+                let currentEvent = null;
+
+                function resolveImage(img, index) {
+                    return img && img.length > 0 ? img : placeholders[index % placeholders.length];
+                }
+
+                function showCategories() {
+                    categoryStage.style.display = 'block';
+                    eventStage.style.display = 'none';
+                    participantsStage.style.display = 'none';
+                    currentCategory = null;
+                    currentEvent = null;
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+
+                function showEvents(catId, catName) {
+                    currentCategory = { id: catId, name: catName };
+                    currentEvent = null;
+
+                    categoryStage.style.display = 'none';
+                    eventStage.style.display = 'block';
+                    participantsStage.style.display = 'none';
+
+                    const filtered = allEvents.filter(ev => ev.categoryId === catId);
+                    eventStageTitle.textContent = catName + ' events';
+                    eventStageCount.textContent = filtered.length + ' event' + (filtered.length === 1 ? '' : 's');
+                    eventTableBody.innerHTML = '';
+
+                    if (filtered.length === 0) {
+                        eventStageEmpty.style.display = 'block';
+                        return;
+                    }
+
+                    eventStageEmpty.style.display = 'none';
+
+                    filtered.forEach(function (ev, index) {
+                        const countInEvent = allEnrolments.filter(en => en.eventID === ev.eventID).length;
+                        const imgSrc = resolveImage(ev.image, index);
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML =
+                            '<td data-label="#" class="participants_id_cell">' + (index + 1) + '</td>' +
+                            '<td data-label="Event">' +
+                            '<div class="event_row_cell">' +
+                            '<div class="event_row_image">' +
+                            '<img src="' + imgSrc + '" alt="' + ev.eventName + '" onerror="this.onerror=null;this.src=\'' + placeholders[0] + '\';">' +
+                            '</div>' +
+                            '<button type="button" class="event_row_btn" onclick="showParticipantsFromRow(' + ev.eventID + ', \'' + ev.eventName.replace(/'/g, "\\'") + '\')">' + ev.eventName + '</button>' +
+                            '</div>' +
+                            '</td>' +
+                            '<td data-label="Date">' + ev.date + '</td>' +
+                            '<td data-label="Location">' + ev.location + '</td>' +
+                            '<td data-label="Type">' + ev.eventType + '</td>' +
+                            '<td data-label="Participants">' +
+                            '<span class="participants_badge participants_badge_pending"><i class="fa fa-users"></i> ' + countInEvent + '</span>' +
+                            '</td>' +
+                            '<td data-label="Actions">' +
+                            '<div class="participants_actions">' +
+                            '<button type="button" class="participants_action_btn participants_action_view" onclick="showParticipantsFromRow(' + ev.eventID + ', \'' + ev.eventName.replace(/'/g, "\\'") + '\')">' +
+                            '<i class="fa fa-users"></i><span>View</span>' +
+                            '</button>' +
+                            '</div>' +
+                            '</td>';
+                        eventTableBody.appendChild(tr);
+                    });
+
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({ stage: 'events', catId: catId, catName: catName }));
+                }
+
+                function showParticipants(evId, evName) {
+                    currentEvent = { id: evId, name: evName };
+
+                    categoryStage.style.display = 'none';
+                    eventStage.style.display = 'none';
+                    participantsStage.style.display = 'block';
+
+                    participantsStageTitle.textContent = evName + ' participants';
+
+                    const filtered = allEnrolments.filter(en => en.eventID === evId);
+                    participantsStageCount.textContent = filtered.length + ' total';
+                    participantsTableBody.innerHTML = '';
+
+                    if (filtered.length === 0) {
+                        participantsStageEmpty.style.display = 'block';
+                    } else {
+                        participantsStageEmpty.style.display = 'none';
+
+                        filtered.forEach(function (en, index) {
+                            const hasResult = en.resultID > 0;
+
+                            const tr = document.createElement('tr');
+                            tr.innerHTML =
+                                '<td data-label="#" class="participants_id_cell">' + (index + 1) + '</td>' +
+                                '<td data-label="Participant">' +
+                                '<div class="participants_name_cell">' +
+                                '<span class="participants_name_icon"><i class="fa fa-user"></i></span>' +
+                                '<span>' + en.fullname + '</span>' +
+                                '</div>' +
+                                '</td>' +
+                                '<td data-label="Email">' + en.email + '</td>' +
+                                '<td data-label="Enrolled on">' + en.enrolmentDate + '</td>' +
+                                '<td data-label="Status">' +
+                                (hasResult
+                                    ? '<span class="participants_badge participants_badge_finished"><i class="fa fa-check-circle"></i> Finished</span>'
+                                    : '<span class="participants_badge participants_badge_pending"><i class="fa fa-clock-o"></i> Pending</span>') +
+                                '</td>' +
+                                '<td data-label="Finish time">' + (hasResult ? en.finishTime : '<span style="color:#bbb;">—</span>') + '</td>' +
+                                '<td data-label="Position">' + (hasResult ? en.finishPosition : '<span style="color:#bbb;">—</span>') + '</td>' +
+                                '<td data-label="Actions">' + buildActions(en, evId) + '</td>';
+                            participantsTableBody.appendChild(tr);
+                        });
+                    }
+
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                        stage: 'participants',
+                        catId: currentCategory.id,
+                        catName: currentCategory.name,
+                        eventId: evId,
+                        eventName: evName
+                    }));
+                }
+
+                window.showParticipantsFromRow = function (evId, evName) {
+                    showParticipants(evId, evName);
+                };
+
+                function buildActions(en, evId) {
+                    if (en.resultID === 0) {
+                        return '<div class="participants_actions">' +
+                            '<button type="button" class="participants_action_btn participants_action_record" ' +
+                            'data-enrolment-id="' + en.enrolmentID + '" ' +
+                            'data-event-id="' + evId + '" ' +
+                            'data-name="' + en.fullname + '" ' +
+                            'onclick="openRecordModal(this)">' +
+                            '<i class="fa fa-plus"></i><span>Record</span></button>' +
+                            '</div>';
+                    }
+
+                    return '<div class="participants_actions">' +
+                        '<button type="button" class="participants_action_btn participants_action_edit" ' +
+                        'data-result-id="' + en.resultID + '" ' +
+                        'data-event-id="' + evId + '" ' +
+                        'data-name="' + en.fullname + '" ' +
+                        'data-time="' + en.finishTime + '" ' +
+                        'data-position="' + en.finishPosition + '" ' +
+                        'onclick="openUpdateModal(this)">' +
+                        '<i class="fa fa-pencil"></i><span>Update</span></button>' +
+                        '<button type="button" class="participants_action_btn participants_action_delete" ' +
+                        'data-result-id="' + en.resultID + '" ' +
+                        'data-event-id="' + evId + '" ' +
+                        'data-name="' + en.fullname + '" ' +
+                        'onclick="openDeleteModal(this)">' +
+                        '<i class="fa fa-trash"></i><span>Delete</span></button>' +
+                        '</div>';
+                }
+
+                document.querySelectorAll('.category_tile').forEach(function (tile) {
+                    tile.addEventListener('click', function () {
+                        showEvents(parseInt(tile.getAttribute('data-category-id'), 10), tile.getAttribute('data-category-name'));
+                    });
+                });
+
+                document.getElementById('backToCategories').addEventListener('click', showCategories);
+
+                document.getElementById('backToEvents').addEventListener('click', function () {
+                    if (currentCategory) {
+                        showEvents(currentCategory.id, currentCategory.name);
+                    } else {
+                        showCategories();
+                    }
+                });
+
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (parsed.stage === 'participants' && parsed.eventId) {
+                            showEvents(parsed.catId, parsed.catName);
+                            showParticipants(parsed.eventId, parsed.eventName);
+                        } else if (parsed.stage === 'events' && parsed.catId) {
+                            showEvents(parsed.catId, parsed.catName);
+                        }
+                    } catch (e) {
+                        localStorage.removeItem(STORAGE_KEY);
+                    }
+                }
+
+                const recordModal = document.getElementById('recordResultModal');
+                const updateModal = document.getElementById('updateResultModal');
+                const deleteModal = document.getElementById('deleteResultModal');
+
+                window.openRecordModal = function (btn) {
+                    document.getElementById('recordEnrolmentId').value = btn.getAttribute('data-enrolment-id');
+                    document.getElementById('recordEventId').value = btn.getAttribute('data-event-id');
+                    document.getElementById('recordParticipantName').textContent = btn.getAttribute('data-name');
+                    recordModal.classList.add('result_modal_open');
+                };
+
+                window.closeRecordModal = function () { recordModal.classList.remove('result_modal_open'); };
+
+                window.openUpdateModal = function (btn) {
+                    document.getElementById('updateResultId').value = btn.getAttribute('data-result-id');
+                    document.getElementById('updateEventId').value = btn.getAttribute('data-event-id');
+                    document.getElementById('updateParticipantName').textContent = btn.getAttribute('data-name');
+                    document.getElementById('updateFinishTime').value = btn.getAttribute('data-time') || '';
+                    document.getElementById('updateFinishPosition').value = btn.getAttribute('data-position') || '';
+                    updateModal.classList.add('result_modal_open');
+                };
+
+                window.closeUpdateModal = function () { updateModal.classList.remove('result_modal_open'); };
+
+                window.openDeleteModal = function (btn) {
+                    document.getElementById('deleteResultId').value = btn.getAttribute('data-result-id');
+                    document.getElementById('deleteEventId').value = btn.getAttribute('data-event-id');
+                    document.getElementById('deleteParticipantName').textContent = btn.getAttribute('data-name');
+                    deleteModal.classList.add('result_modal_open');
+                };
+
+                window.closeDeleteModal = function () { deleteModal.classList.remove('result_modal_open'); };
+
+                [recordModal, updateModal, deleteModal].forEach(function (modal) {
+                    modal.addEventListener('click', function (e) {
+                        if (e.target === modal) modal.classList.remove('result_modal_open');
+                    });
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        recordModal.classList.remove('result_modal_open');
+                        updateModal.classList.remove('result_modal_open');
+                        deleteModal.classList.remove('result_modal_open');
+                    }
+                });
+            })();
+    </script>
+
+</body>
+</html>

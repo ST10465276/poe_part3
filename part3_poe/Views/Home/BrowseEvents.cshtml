@@ -1,0 +1,965 @@
+﻿@using System.Data.SqlClient
+@using part_2API.backend
+
+@{
+    Layout = null;
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userId = Context.Session.GetString("user_id") ?? "0";
+    int participant_id = Int32.Parse(userId);
+
+    manage_join_events join_manager = new manage_join_events();
+
+    var myCategories = new List<Dictionary<string, object>>();
+    var allEvents = new List<Dictionary<string, object>>();
+    var myEnrolmentEventIds = new List<int>();
+
+    SqlDataReader read_categories = join_manager.view_all_categoriesSite();
+    try
+    {
+        while (read_categories.Read())
+        {
+            myCategories.Add(new Dictionary<string, object>
+            {
+                { "id", read_categories["id"] },
+                { "name", read_categories["name"] },
+                { "description", read_categories["description"] },
+                { "organizer_id", read_categories["organizer_id"] }
+            });
+        }
+    }
+    finally { read_categories.Close(); }
+
+    foreach (var cat in myCategories)
+    {
+        int catId = Convert.ToInt32(cat["id"]);
+        SqlDataReader read_events = join_manager.view_events_by_categorySite(catId);
+
+        try
+        {
+            while (read_events.Read())
+            {
+                allEvents.Add(new Dictionary<string, object>
+                {
+                    { "eventID", read_events["eventID"] },
+                    { "eventName", read_events["eventName"] },
+                    { "description", read_events["description"] },
+                    { "date", read_events["date"] },
+                    { "location", read_events["location"] },
+                    { "distance", read_events["distance"] },
+                    { "eventType", read_events["eventType"] },
+                    { "age", read_events["age"] },
+                    { "startTime", read_events["startTime"] },
+                    { "category_id", read_events["category_id"] },
+                    { "image", read_events["image"] }
+                });
+            }
+        }
+        finally { read_events.Close(); }
+    }
+
+    SqlDataReader read_my_enrolments = join_manager.view_my_enrolmentsSite(participant_id);
+    try
+    {
+        while (read_my_enrolments.Read())
+        {
+            myEnrolmentEventIds.Add(Convert.ToInt32(read_my_enrolments["eventID"]));
+        }
+    }
+    finally { read_my_enrolments.Close(); }
+
+    var successMsg = TempData["JoinSuccess"] as string;
+    var errorMsg = TempData["JoinError"] as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background: #ffffff;
+            }
+
+            body {
+                font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+                background: #ffffff;
+                color: #333;
+                padding: 0;
+                margin: 0;
+            }
+
+            .browse_banner {
+                position: relative;
+                width: 100%;
+                margin: 0 0 2.5rem;
+                background-image: url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                padding: 5rem 2rem;
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .browse_banner_overlay {
+                position: absolute;
+                inset: 0;
+                background-color: rgba(128, 128, 128, 0.6);
+                z-index: 1;
+            }
+
+            .browse_banner_content {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                text-align: left;
+                color: #ffffff;
+            }
+
+                .browse_banner_content h1 {
+                    color: #ffffff;
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    line-height: 1.1;
+                    margin: 0 0 0.6rem;
+                    letter-spacing: -0.5px;
+                }
+
+                .browse_banner_content .sub {
+                    color: #e6e6e6;
+                    font-size: 1.05rem;
+                    line-height: 1.7;
+                    margin: 0;
+                }
+
+            .browse_content {
+                padding: 0 2rem 2rem;
+            }
+
+            .browse_flash {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.85rem 1rem;
+                border-radius: 5px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+                line-height: 1.5;
+            }
+
+            .browse_flash_success {
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            .browse_flash_error {
+                background: #fbeaea;
+                color: #c0392b;
+            }
+
+            .browse_flash i {
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+
+            .browse_head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1.5rem;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .browse_head_left {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .browse_title {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0;
+            }
+
+            .browse_count {
+                font-size: 0.75rem;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .browse_back_btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                padding: 0.5rem 1rem;
+                background: #f2f2f2;
+                color: #333;
+                border: 1px solid #e5e5e5;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                transition: background-color 0.15s ease;
+            }
+
+                .browse_back_btn:hover {
+                    background: #e6e6e6;
+                }
+
+            .categories_table_wrap {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .categories_table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.875rem;
+            }
+
+                .categories_table thead {
+                    background: #000;
+                    color: #ffffff;
+                    text-align: left;
+                }
+
+                .categories_table th {
+                    padding: 0.85rem 1rem;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    white-space: nowrap;
+                }
+
+                .categories_table td {
+                    padding: 0.85rem 1rem;
+                    border-bottom: 1px solid #ececec;
+                    color: #555;
+                    vertical-align: middle;
+                }
+
+                .categories_table tbody tr:hover {
+                    background: #fafafa;
+                    cursor: pointer;
+                }
+
+                .categories_table tbody tr:last-child td {
+                    border-bottom: none;
+                }
+
+            .categories_id_cell {
+                font-family: 'SF Mono', Menlo, monospace;
+                font-size: 0.8rem;
+                color: #888;
+            }
+
+            .categories_name_cell {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 600;
+                color: #000;
+            }
+
+            .categories_name_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 32px;
+                height: 32px;
+                border-radius: 5px;
+                background: #000;
+                color: #fff;
+                font-size: 0.8rem;
+                flex-shrink: 0;
+            }
+
+            .categories_pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.72rem;
+                color: #666;
+                background: #f7f7f7;
+                border-radius: 5px;
+                padding: 0.2rem 0.55rem;
+            }
+
+            .categories_view_btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.35rem;
+                padding: 0.4rem 0.7rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                background: #000;
+                color: #fff;
+                border: 1px solid #000;
+                transition: background-color 0.15s ease;
+            }
+
+                .categories_view_btn:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .event_cards {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+            }
+
+            .event_card {
+                display: flex;
+                flex-direction: column;
+                background: #ffffff;
+                border: 1px solid #ececec;
+                border-radius: 5px;
+                overflow: hidden;
+                box-sizing: border-box;
+                position: relative;
+            }
+
+            .event_card_image {
+                width: 100%;
+                height: 180px;
+                overflow: hidden;
+                background: #f2f2f2;
+            }
+
+            .event_card_img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+
+            .event_card_body {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                padding: 1.25rem;
+            }
+
+            .event_card_title {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.5rem;
+                line-height: 1.3;
+            }
+
+            .event_card_text {
+                font-size: 0.85rem;
+                line-height: 1.6;
+                color: #777;
+                margin: 0 0 1rem;
+            }
+
+            .event_card_meta {
+                list-style: none;
+                margin: 0 0 1rem;
+                padding: 0;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem 0.85rem;
+            }
+
+                .event_card_meta li {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    font-size: 0.72rem;
+                    color: #666;
+                    background: #f7f7f7;
+                    border-radius: 5px;
+                    padding: 0.22rem 0.55rem;
+                }
+
+                .event_card_meta i {
+                    color: #999;
+                    flex-shrink: 0;
+                    font-size: 0.7rem;
+                }
+
+            .event_card_footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-top: auto;
+                padding-top: 1rem;
+                border-top: 1px solid #f2f2f2;
+                gap: 0.75rem;
+            }
+
+            .event_card_status {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.7rem;
+                font-weight: 600;
+                padding: 0.25rem 0.6rem;
+                border-radius: 5px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .event_card_status_joined {
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            .event_card_status_open {
+                background: #f2f2f2;
+                color: #666;
+            }
+
+            .event_card_join {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: #000;
+                color: #fff;
+                border: none;
+                cursor: pointer;
+                font-size: 0.9rem;
+                flex-shrink: 0;
+                transition: background-color 0.15s ease;
+            }
+
+                .event_card_join:hover {
+                    background: #333;
+                }
+
+            .event_card_joined {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: #e8f5e8;
+                color: #2f6b2f;
+                font-size: 0.9rem;
+                flex-shrink: 0;
+                cursor: default;
+            }
+
+            .browse_empty {
+                padding: 3rem 1rem;
+                text-align: center;
+                color: #888;
+                font-size: 0.9rem;
+            }
+
+                .browse_empty i {
+                    display: block;
+                    font-size: 1.75rem;
+                    color: #ccc;
+                    margin-bottom: 0.75rem;
+                }
+
+            .browse_modal {
+                position: fixed;
+                inset: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0, 0, 0, 0.55);
+                z-index: 500;
+                padding: 1rem;
+            }
+
+            .browse_modal_open {
+                display: flex;
+            }
+
+            .browse_modal_box {
+                background: #ffffff;
+                border-radius: 8px;
+                max-width: 460px;
+                width: 100%;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+                animation: browse_modal_in 0.25s ease;
+                position: relative;
+                padding: 2rem;
+                text-align: center;
+            }
+
+            @@keyframes browse_modal_in {
+                from {
+                    opacity: 0;
+                    transform: translateY(12px) scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            .browse_modal_close {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: #f2f2f2;
+                color: #555;
+                border: none;
+                cursor: pointer;
+                font-size: 0.9rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+                .browse_modal_close:hover {
+                    background: #e6e6e6;
+                }
+
+            .browse_modal_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: #000;
+                color: #fff;
+                font-size: 1.4rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .browse_modal_title {
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.5rem;
+            }
+
+            .browse_modal_text {
+                font-size: 0.9rem;
+                color: #777;
+                line-height: 1.6;
+                margin: 0 0 1.5rem;
+            }
+
+            .browse_modal_actions {
+                display: flex;
+                gap: 0.75rem;
+            }
+
+            .browse_modal_btn {
+                flex: 1;
+                padding: 0.75rem 1rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.8rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+            }
+
+            .browse_modal_btn_light {
+                background: #fff;
+                color: #555;
+                border-color: #e5e5e5;
+            }
+
+                .browse_modal_btn_light:hover {
+                    background: #f2f2f2;
+                }
+
+            .browse_modal_btn_dark {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .browse_modal_btn_dark:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            @@media (max-width: 1024px) {
+                .event_cards {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+
+            @@media (max-width: 700px) {
+                .browse_banner {
+                    padding: 3.5rem 1.25rem;
+                }
+
+                .browse_banner_content h1 {
+                    font-size: 1.9rem;
+                }
+
+                .categories_table thead {
+                    display: none;
+                }
+
+                .categories_table,
+                .categories_table tbody,
+                .categories_table tr,
+                .categories_table td {
+                    display: block;
+                    width: 100%;
+                }
+
+                    .categories_table tr {
+                        border-bottom: 1px solid #ececec;
+                        padding: 0.85rem 0;
+                    }
+
+                    .categories_table td {
+                        border-bottom: none;
+                        padding: 0.35rem 1rem;
+                    }
+
+                        .categories_table td::before {
+                            content: attr(data-label);
+                            display: inline-block;
+                            font-weight: 600;
+                            color: #000;
+                            min-width: 110px;
+                            font-size: 0.72rem;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+
+                .event_cards {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @@media (max-width: 600px) {
+                .browse_banner {
+                    padding: 3rem 1rem;
+                }
+
+                .browse_banner_content h1 {
+                    font-size: 1.6rem;
+                }
+
+                .browse_content {
+                    padding: 0 1rem 1.5rem;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <section class="browse_banner">
+        <div class="browse_banner_overlay"></div>
+        <div class="browse_banner_content">
+            <h1>Browse events</h1>
+            <p class="sub">Pick a category, then join any event that fits you.</p>
+        </div>
+    </section>
+
+    <div class="browse_content">
+
+        @if (!string.IsNullOrEmpty(successMsg))
+        {
+            <div class="browse_flash browse_flash_success">
+                <i class="fa fa-check-circle"></i>
+                <span>@successMsg</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="browse_flash browse_flash_error">
+                <i class="fa fa-exclamation-circle"></i>
+                <span>@errorMsg</span>
+            </div>
+        }
+
+        <div id="categoryStage">
+            <div class="browse_head">
+                <div class="browse_head_left">
+                    <h2 class="browse_title">Choose a category</h2>
+                    <span class="browse_count">@myCategories.Count categories</span>
+                </div>
+            </div>
+
+            @if (myCategories.Count == 0)
+            {
+                <div class="browse_empty">
+                    <i class="fa fa-tags"></i>
+                    No categories available yet.
+                </div>
+            }
+            else
+            {
+                <div class="categories_table_wrap">
+                    <table class="categories_table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Events</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int rowNum = 0;
+                            }
+                            @foreach (var c in myCategories)
+                            {
+                                rowNum++;
+                                int catId = Convert.ToInt32(c["id"]);
+                                int countInCat = allEvents.Count(e => Convert.ToInt32(e["category_id"]) == catId);
+
+                                <tr data-category-id="@catId" data-category-name="@c["name"]" onclick="showEventsFromRow(@catId, '@c["name"]')">
+                                    <td data-label="#" class="categories_id_cell">@rowNum</td>
+                                    <td data-label="Category">
+                                        <div class="categories_name_cell">
+                                            <span class="categories_name_icon"><i class="fa fa-tags"></i></span>
+                                            <span>@c["name"]</span>
+                                        </div>
+                                    </td>
+                                    <td data-label="Description">@c["description"]</td>
+                                    <td data-label="Events">
+                                        <span class="categories_pill">
+                                            <i class="fa fa-flag"></i>
+                                            @countInCat event@(countInCat == 1 ? "" : "s")
+                                        </span>
+                                    </td>
+                                    <td data-label="Actions">
+                                        <button type="button" class="categories_view_btn" onclick="event.stopPropagation(); showEventsFromRow(@catId, '@c["name"]')">
+                                            <i class="fa fa-arrow-right"></i>
+                                            <span>View</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div id="eventStage" style="display: none;">
+            <div class="browse_head">
+                <div class="browse_head_left">
+                    <h2 class="browse_title" id="eventStageTitle">Events</h2>
+                    <span class="browse_count" id="eventStageCount">0 events</span>
+                </div>
+                <button type="button" class="browse_back_btn" id="backToCategories">
+                    <i class="fa fa-arrow-left"></i>
+                    <span>Back to categories</span>
+                </button>
+            </div>
+
+            <div class="event_cards" id="eventCardsGrid"></div>
+
+            <div id="eventStageEmpty" style="display: none;" class="browse_empty">
+                <i class="fa fa-flag"></i>
+                No events in this category yet.
+            </div>
+        </div>
+
+    </div>
+
+    <div class="browse_modal" id="joinModal">
+        <div class="browse_modal_box">
+            <button type="button" class="browse_modal_close" onclick="closeJoinModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="browse_modal_icon">
+                <i class="fa fa-flag-checkered"></i>
+            </div>
+            <h3 class="browse_modal_title">Join this event?</h3>
+            <p class="browse_modal_text">You are about to join <strong id="joinEventName">this event</strong>. You can cancel your enrolment later from your dashboard.</p>
+
+            <form method="post" asp-controller="Home" asp-action="JoinEvent">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="eventId" id="joinEventId" value="0">
+
+                <div class="browse_modal_actions">
+                    <button type="button" class="browse_modal_btn browse_modal_btn_light" onclick="closeJoinModal()">Cancel</button>
+                    <button type="submit" class="browse_modal_btn browse_modal_btn_dark">
+                        <i class="fa fa-check"></i> Join
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+            (function () {
+                const STORAGE_KEY = 'browse_events_state';
+
+                const placeholders = [
+                    "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=800&q=80"
+                ];
+
+                const allEvents = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(allEvents.Select(e => new
+                            {
+                                eventID = Convert.ToInt32(e["eventID"]),
+                                eventName = e["eventName"]?.ToString() ?? "",
+                                description = e["description"]?.ToString() ?? "",
+                                date = Convert.ToDateTime(e["date"]).ToString("dd MMM yyyy"),
+                                location = e["location"]?.ToString() ?? "",
+                                distance = e["distance"]?.ToString() ?? "",
+                                eventType = e["eventType"]?.ToString() ?? "",
+                                categoryId = Convert.ToInt32(e["category_id"]),
+                                image = e["image"]?.ToString() ?? ""
+                        })));
+
+                const myEnrolmentEventIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(myEnrolmentEventIds));
+
+                const categoryStage = document.getElementById('categoryStage');
+                const eventStage = document.getElementById('eventStage');
+                const eventStageTitle = document.getElementById('eventStageTitle');
+                const eventStageCount = document.getElementById('eventStageCount');
+                const eventCardsGrid = document.getElementById('eventCardsGrid');
+                const eventStageEmpty = document.getElementById('eventStageEmpty');
+
+                function resolveImage(img, index) {
+                    return img && img.length > 0 ? img : placeholders[index % placeholders.length];
+                }
+
+                function showCategories() {
+                    categoryStage.style.display = 'block';
+                    eventStage.style.display = 'none';
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+
+                function showEvents(catId, catName) {
+                    categoryStage.style.display = 'none';
+                    eventStage.style.display = 'block';
+
+                    const filtered = allEvents.filter(ev => ev.categoryId === catId);
+                    eventStageTitle.textContent = catName + ' events';
+                    eventStageCount.textContent = filtered.length + ' event' + (filtered.length === 1 ? '' : 's');
+                    eventCardsGrid.innerHTML = '';
+
+                    if (filtered.length === 0) {
+                        eventStageEmpty.style.display = 'block';
+                        return;
+                    }
+
+                    eventStageEmpty.style.display = 'none';
+
+                    filtered.forEach(function (ev, index) {
+                        const joined = myEnrolmentEventIds.includes(ev.eventID);
+                        const imgSrc = resolveImage(ev.image, index);
+
+                        const card = document.createElement('article');
+                        card.className = 'event_card';
+                        card.innerHTML =
+                            '<div class="event_card_image">' +
+                            '<img src="' + imgSrc + '" alt="' + ev.eventName + '" class="event_card_img" onerror="this.onerror=null;this.src=\'' + placeholders[0] + '\';">' +
+                            '</div>' +
+                            '<div class="event_card_body">' +
+                            '<h3 class="event_card_title">' + ev.eventName + '</h3>' +
+                            '<p class="event_card_text">' + ev.description + '</p>' +
+                            '<ul class="event_card_meta">' +
+                            '<li><i class="fa fa-calendar"></i><span>' + ev.date + '</span></li>' +
+                            '<li><i class="fa fa-map-marker"></i><span>' + ev.location + '</span></li>' +
+                            '<li><i class="fa fa-tags"></i><span>' + ev.eventType + '</span></li>' +
+                            '<li><i class="fa fa-road"></i><span>' + ev.distance + ' km</span></li>' +
+                            '</ul>' +
+                            '<div class="event_card_footer">' +
+                            (joined
+                                ? '<span class="event_card_status event_card_status_joined"><i class="fa fa-check-circle"></i> Joined</span>' +
+                                '<div class="event_card_joined"><i class="fa fa-check"></i></div>'
+                                : '<span class="event_card_status event_card_status_open"><i class="fa fa-clock-o"></i> Open</span>' +
+                                '<button type="button" class="event_card_join" ' +
+                                'data-event-id="' + ev.eventID + '" ' +
+                                'data-event-name="' + ev.eventName + '" ' +
+                                'onclick="openJoinModal(this)">' +
+                                '<i class="fa fa-plus"></i></button>') +
+                            '</div>' +
+                            '</div>';
+                        eventCardsGrid.appendChild(card);
+                    });
+
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({ catId: catId, catName: catName }));
+                }
+
+                window.showEventsFromRow = function (catId, catName) {
+                    showEvents(catId, catName);
+                };
+
+                document.getElementById('backToCategories').addEventListener('click', showCategories);
+
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (parsed.catId) {
+                            showEvents(parsed.catId, parsed.catName);
+                        }
+                    } catch (e) {
+                        localStorage.removeItem(STORAGE_KEY);
+                    }
+                }
+
+                const joinModal = document.getElementById('joinModal');
+
+                window.openJoinModal = function (btn) {
+                    document.getElementById('joinEventId').value = btn.getAttribute('data-event-id');
+                    document.getElementById('joinEventName').textContent = btn.getAttribute('data-event-name');
+                    joinModal.classList.add('browse_modal_open');
+                };
+
+                window.closeJoinModal = function () {
+                    joinModal.classList.remove('browse_modal_open');
+                };
+
+                joinModal.addEventListener('click', function (e) {
+                    if (e.target === joinModal) closeJoinModal();
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') closeJoinModal();
+                });
+            })();
+    </script>
+
+</body>
+</html>

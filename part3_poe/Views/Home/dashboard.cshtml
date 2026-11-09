@@ -1,0 +1,168 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userRole = Context.Session.GetString("user_role") ?? "Participant";
+}
+
+<link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+<div class="dashboard">
+
+    <aside class="dashboard_sidebar" id="dashboardSidebar">
+        <div class="dashboard_sidebar_head">
+            <span class="dashboard_sidebar_label">Menu</span>
+        </div>
+
+        <nav class="dashboard_nav">
+            <button type="button" class="dashboard_nav_item dashboard_nav_active" data-url="/Home/overview">
+                <i class="fa fa-th-large"></i>
+                <span>Overview</span>
+            </button>
+
+            @if (userRole == "Organizer")
+            {
+                <button type="button" class="dashboard_nav_item" data-url="/Home/MyEvents">
+                    <i class="fa fa-flag"></i>
+                    <span>My Events</span>
+                </button>
+                <button type="button" class="dashboard_nav_item" data-url="/Home/CreateEvent">
+                    <i class="fa fa-plus-circle"></i>
+                    <span>Create Event</span>
+                </button>
+                <button type="button" class="dashboard_nav_item" data-url="/Home/Participants">
+                    <i class="fa fa-users"></i>
+                    <span>Participants</span>
+                </button>
+                <button type="button" class="dashboard_nav_item" data-url="/Home/Categories">
+                    <i class="fa fa-tags"></i>
+                    <span>Categories</span>
+                </button>
+            }
+            else
+            {
+                <button type="button" class="dashboard_nav_item" data-url="/Home/MyJoinedEvents">
+                    <i class="fa fa-users"></i>
+                    <span>My Joined Events</span>
+                </button>
+                <button type="button" class="dashboard_nav_item" data-url="/Home/BrowseEvents">
+                    <i class="fa fa-search"></i>
+                    <span>Browse Events</span>
+                </button>
+            }
+
+            <button type="button" class="dashboard_nav_item" data-url="/Home/Profile">
+                <i class="fa fa-user"></i>
+                <span>Profile</span>
+            </button>
+
+            <button type="button" class="dashboard_nav_item dashboard_nav_logout" id="dashboardLogout">
+                <i class="fa fa-sign-out"></i>
+                <span>Logout</span>
+            </button>
+        </nav>
+    </aside>
+
+    <div class="dashboard_body">
+
+        <header class="dashboard_topbar">
+            <button type="button" class="dashboard_topbar_toggle" id="dashboardToggle">
+                <i class="fa fa-bars"></i>
+            </button>
+
+            <div class="dashboard_topbar_title" id="dashboardTitle">Overview</div>
+
+            <div class="dashboard_topbar_user">
+                <div class="dashboard_topbar_avatar">
+                    <i class="fa fa-user"></i>
+                </div>
+                <div class="dashboard_topbar_info">
+                    <span class="dashboard_topbar_name">@userName</span>
+                    <span class="dashboard_topbar_role">@userRole</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard_content">
+            <iframe id="dashboardFrame"
+                    class="dashboard_frame"
+                    src="/Home/Overview"
+                    title="Dashboard content"></iframe>
+        </main>
+
+    </div>
+
+</div>
+
+<div class="dashboard_modal" id="logoutModal">
+    <div class="dashboard_modal_box">
+        <div class="dashboard_modal_icon">
+            <i class="fa fa-sign-out"></i>
+        </div>
+        <h3 class="dashboard_modal_title">Log out?</h3>
+        <p class="dashboard_modal_text">Are you sure you want to log out of your account?</p>
+        <div class="dashboard_modal_actions">
+            <button type="button" class="dashboard_modal_btn dashboard_modal_btn_light" id="logoutCancel">Cancel</button>
+            <a class="dashboard_modal_btn dashboard_modal_btn_dark" asp-controller="Home" asp-action="Logout">Log out</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const navItems = document.querySelectorAll('.dashboard_nav_item[data-url]');
+        const frame = document.getElementById('dashboardFrame');
+        const title = document.getElementById('dashboardTitle');
+        const toggle = document.getElementById('dashboardToggle');
+        const sidebar = document.getElementById('dashboardSidebar');
+        const logoutBtn = document.getElementById('dashboardLogout');
+        const logoutModal = document.getElementById('logoutModal');
+        const logoutCancel = document.getElementById('logoutCancel');
+
+        function navigate(url, label) {
+            frame.src = url;
+            title.textContent = label || 'Dashboard';
+
+            navItems.forEach(function (item) {
+                item.classList.remove('dashboard_nav_active');
+            });
+
+            const active = document.querySelector('.dashboard_nav_item[data-url="' + url + '"]');
+            if (active) {
+                active.classList.add('dashboard_nav_active');
+            }
+
+            if (window.innerWidth <= 900) {
+                sidebar.classList.remove('dashboard_sidebar_open');
+            }
+        }
+
+        navItems.forEach(function (item) {
+            item.addEventListener('click', function () {
+                const url = item.getAttribute('data-url');
+                const label = item.querySelector('span').textContent;
+                navigate(url, label);
+            });
+        });
+
+        toggle.addEventListener('click', function () {
+            sidebar.classList.toggle('dashboard_sidebar_open');
+        });
+
+        logoutBtn.addEventListener('click', function () {
+            logoutModal.classList.add('dashboard_modal_open');
+        });
+
+        logoutCancel.addEventListener('click', function () {
+            logoutModal.classList.remove('dashboard_modal_open');
+        });
+
+        logoutModal.addEventListener('click', function (e) {
+            if (e.target === logoutModal) {
+                logoutModal.classList.remove('dashboard_modal_open');
+            }
+        });
+
+        window.navigate = navigate;
+    })();
+</script>

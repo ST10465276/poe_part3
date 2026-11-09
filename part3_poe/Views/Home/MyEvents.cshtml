@@ -1,0 +1,1211 @@
+﻿@using System.Data.SqlClient
+@using part_2API.backend
+
+@{
+    Layout = null;
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userId = Context.Session.GetString("user_id") ?? "0";
+    int organizer_id = Int32.Parse(userId);
+
+    manage_events events_manager = new manage_events();
+    var myEvents = new List<Dictionary<string, object>>();
+
+    SqlDataReader read_events = events_manager.view_eventsSite(organizer_id);
+
+    try
+    {
+        while (read_events.Read())
+        {
+            var row = new Dictionary<string, object>
+            {
+                { "eventID", read_events["eventID"] },
+                { "eventName", read_events["eventName"] },
+                { "description", read_events["description"] },
+                { "date", read_events["date"] },
+                { "location", read_events["location"] },
+                { "distance", read_events["distance"] },
+                { "eventType", read_events["eventType"] },
+                { "age", read_events["age"] },
+                { "startTime", read_events["startTime"] },
+                { "category_id", read_events["category_id"] },
+                { "user_id", read_events["user_id"] },
+                { "image", read_events["image"] }
+            };
+            myEvents.Add(row);
+        }
+    }
+    finally
+    {
+        read_events.Close();
+    }
+
+    manage_categories categories_manager = new manage_categories();
+    var myCategories = new List<Dictionary<string, object>>();
+
+    SqlDataReader read_categories = categories_manager.view_categoriesSite(organizer_id);
+
+    try
+    {
+        while (read_categories.Read())
+        {
+            var row = new Dictionary<string, object>
+            {
+                { "id", read_categories["id"] },
+                { "name", read_categories["name"] }
+            };
+            myCategories.Add(row);
+        }
+    }
+    finally
+    {
+        read_categories.Close();
+    }
+
+    var successMsg = TempData["EventSuccess"] as string;
+    var errorMsg = TempData["EventError"] as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background: #ffffff;
+            }
+
+            body {
+                font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+                background: #ffffff;
+                color: #333;
+                padding: 0;
+                margin: 0;
+            }
+
+            .myevents_banner {
+                position: relative;
+                width: 100%;
+                margin: 0 0 2.5rem;
+                background-image: url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                padding: 5rem 2rem;
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .myevents_banner_overlay {
+                position: absolute;
+                inset: 0;
+                background-color: rgba(128, 128, 128, 0.6);
+                z-index: 1;
+            }
+
+            .myevents_banner_content {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                text-align: left;
+                color: #ffffff;
+            }
+
+                .myevents_banner_content h1 {
+                    color: #ffffff;
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    line-height: 1.1;
+                    margin: 0 0 0.6rem;
+                    letter-spacing: -0.5px;
+                }
+
+                .myevents_banner_content .sub {
+                    color: #e6e6e6;
+                    font-size: 1.05rem;
+                    line-height: 1.7;
+                    margin: 0;
+                }
+
+            .myevents_content {
+                padding: 0 2rem 2rem;
+            }
+
+            .myevents_flash {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.85rem 1rem;
+                border-radius: 5px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+                line-height: 1.5;
+            }
+
+            .myevents_flash_success {
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            .myevents_flash_error {
+                background: #fbeaea;
+                color: #c0392b;
+            }
+
+            .myevents_flash i {
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+
+            .myevents_head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1.5rem;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .myevents_head_left {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .myevents_title {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0;
+            }
+
+            .myevents_count {
+                font-size: 0.75rem;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .myevents_back_btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                padding: 0.5rem 1rem;
+                background: #f2f2f2;
+                color: #333;
+                border: 1px solid #e5e5e5;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                transition: background-color 0.15s ease;
+            }
+
+                .myevents_back_btn:hover {
+                    background: #e6e6e6;
+                }
+
+            .category_grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.25rem;
+            }
+
+            .category_tile {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1.5rem;
+                background: #ffffff;
+                border: 1px solid #ececec;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: inherit;
+                text-align: left;
+                transition: border-color 0.15s ease, background-color 0.15s ease;
+            }
+
+                .category_tile:hover {
+                    border-color: #000;
+                    background: #fafafa;
+                }
+
+            .category_tile_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 42px;
+                height: 42px;
+                border-radius: 5px;
+                background: #000;
+                color: #fff;
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .category_tile_name {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.35rem;
+            }
+
+            .category_tile_count {
+                font-size: 0.72rem;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin: 0;
+            }
+
+            .myevents_table_wrap {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .myevents_table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.875rem;
+            }
+
+                .myevents_table thead {
+                    background: #000;
+                    color: #ffffff;
+                    text-align: left;
+                }
+
+                .myevents_table th {
+                    padding: 0.85rem 1rem;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    white-space: nowrap;
+                }
+
+                .myevents_table td {
+                    padding: 0.85rem 1rem;
+                    border-bottom: 1px solid #ececec;
+                    color: #555;
+                    vertical-align: middle;
+                }
+
+                .myevents_table tbody tr:hover {
+                    background: #fafafa;
+                }
+
+                .myevents_table tbody tr:last-child td {
+                    border-bottom: none;
+                }
+
+            .myevents_name_cell {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 600;
+                color: #000;
+            }
+
+            .myevents_name_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 32px;
+                height: 32px;
+                border-radius: 5px;
+                background: #000;
+                color: #fff;
+                font-size: 0.8rem;
+                flex-shrink: 0;
+            }
+
+            .myevents_id_cell {
+                font-family: 'SF Mono', Menlo, monospace;
+                font-size: 0.8rem;
+                color: #888;
+            }
+
+            .myevents_pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.72rem;
+                color: #666;
+                background: #f7f7f7;
+                border-radius: 5px;
+                padding: 0.2rem 0.55rem;
+            }
+
+                .myevents_pill i {
+                    color: #999;
+                    font-size: 0.7rem;
+                }
+
+            .myevents_actions {
+                display: inline-flex;
+                gap: 0.35rem;
+            }
+
+            .myevents_action_btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.35rem;
+                padding: 0.4rem 0.7rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+                text-decoration: none;
+                transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .myevents_action_view {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .myevents_action_view:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .myevents_action_edit {
+                background: #f2f2f2;
+                color: #333;
+                border-color: #e5e5e5;
+            }
+
+                .myevents_action_edit:hover {
+                    background: #e6e6e6;
+                }
+
+            .myevents_action_delete {
+                background: #fbeaea;
+                color: #c0392b;
+                border-color: #f5d0d0;
+            }
+
+                .myevents_action_delete:hover {
+                    background: #f7d5d5;
+                }
+
+            .myevents_empty {
+                padding: 3rem 1rem;
+                text-align: center;
+                color: #888;
+                font-size: 0.9rem;
+            }
+
+                .myevents_empty i {
+                    display: block;
+                    font-size: 1.75rem;
+                    color: #ccc;
+                    margin-bottom: 0.75rem;
+                }
+
+            .myevents_modal {
+                position: fixed;
+                inset: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0, 0, 0, 0.55);
+                z-index: 500;
+                padding: 1rem;
+                overflow-y: auto;
+            }
+
+            .myevents_modal_open {
+                display: flex;
+            }
+
+            .myevents_modal_box {
+                background: #ffffff;
+                border-radius: 8px;
+                max-width: 720px;
+                width: 100%;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+                animation: myevents_modal_in 0.25s ease;
+                position: relative;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            @@keyframes myevents_modal_in {
+                from {
+                    opacity: 0;
+                    transform: translateY(12px) scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            .myevents_modal_close {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                z-index: 3;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: rgba(0, 0, 0, 0.6);
+                color: #fff;
+                border: none;
+                cursor: pointer;
+                font-size: 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.15s ease;
+            }
+
+                .myevents_modal_close:hover {
+                    background: rgba(0, 0, 0, 0.85);
+                }
+
+            .myevents_news {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .myevents_news_image {
+                width: 100%;
+                height: 280px;
+                overflow: hidden;
+                background: #f2f2f2;
+            }
+
+            .myevents_news_img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+
+            .myevents_news_body {
+                padding: 2rem;
+            }
+
+            .myevents_news_badge {
+                display: inline-block;
+                padding: 0.3rem 0.75rem;
+                background: #000;
+                color: #fff;
+                border-radius: 5px;
+                font-size: 0.7rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 1rem;
+            }
+
+            .myevents_news_title {
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: #000;
+                line-height: 1.2;
+                margin: 0 0 0.75rem;
+                letter-spacing: -0.5px;
+            }
+
+            .myevents_news_meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1rem 1.5rem;
+                padding: 1rem 0;
+                border-top: 1px solid #ececec;
+                border-bottom: 1px solid #ececec;
+                margin-bottom: 1.25rem;
+            }
+
+            .myevents_news_meta_item {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                font-size: 0.8rem;
+                color: #666;
+            }
+
+                .myevents_news_meta_item i {
+                    color: #999;
+                }
+
+            .myevents_news_text {
+                font-size: 0.95rem;
+                line-height: 1.8;
+                color: #555;
+                margin: 0;
+            }
+
+            .edit_row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .edit_field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+                margin-bottom: 1rem;
+            }
+
+            .edit_label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #333;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .edit_input {
+                width: 100%;
+                padding: 0.75rem 0.9rem;
+                border: 1px solid #e5e5e5;
+                border-radius: 5px;
+                background: #ffffff;
+                color: #333;
+                font-family: inherit;
+                font-size: 0.9rem;
+                outline: none;
+                box-sizing: border-box;
+                transition: border-color 0.15s ease;
+            }
+
+                .edit_input:focus {
+                    border-color: #000;
+                }
+
+            .edit_textarea {
+                resize: vertical;
+                min-height: 70px;
+            }
+
+            .edit_select {
+                cursor: pointer;
+            }
+
+            .edit_btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1.25rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.8rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+                transition: background-color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .edit_btn_primary {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .edit_btn_primary:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .edit_btn_light {
+                background: #fff;
+                color: #555;
+                border-color: #e5e5e5;
+            }
+
+                .edit_btn_light:hover {
+                    background: #f2f2f2;
+                }
+
+            @@media (max-width: 900px) {
+                .myevents_banner {
+                    padding: 4rem 1.25rem;
+                }
+
+                .myevents_banner_content h1 {
+                    font-size: 2rem;
+                }
+
+                .category_grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+
+            @@media (max-width: 700px) {
+                .myevents_table thead {
+                    display: none;
+                }
+
+                .myevents_table,
+                .myevents_table tbody,
+                .myevents_table tr,
+                .myevents_table td {
+                    display: block;
+                    width: 100%;
+                }
+
+                    .myevents_table tr {
+                        border-bottom: 1px solid #ececec;
+                        padding: 0.85rem 0;
+                    }
+
+                    .myevents_table td {
+                        border-bottom: none;
+                        padding: 0.35rem 1rem;
+                    }
+
+                        .myevents_table td::before {
+                            content: attr(data-label);
+                            display: inline-block;
+                            font-weight: 600;
+                            color: #000;
+                            min-width: 100px;
+                            font-size: 0.72rem;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+
+                .myevents_news_image {
+                    height: 200px;
+                }
+
+                .myevents_news_title {
+                    font-size: 1.4rem;
+                }
+
+                .myevents_news_body {
+                    padding: 1.5rem;
+                }
+
+                .edit_row {
+                    grid-template-columns: 1fr;
+                }
+
+                .category_grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @@media (max-width: 600px) {
+                .myevents_banner {
+                    padding: 3rem 1rem;
+                }
+
+                .myevents_banner_content h1 {
+                    font-size: 1.6rem;
+                }
+
+                .myevents_content {
+                    padding: 0 1rem 1.5rem;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <section class="myevents_banner">
+        <div class="myevents_banner_overlay"></div>
+        <div class="myevents_banner_content">
+            <h1>My events</h1>
+            <p class="sub">Pick a category first, then see the events inside it.</p>
+        </div>
+    </section>
+
+    <div class="myevents_content">
+
+        @if (!string.IsNullOrEmpty(successMsg))
+        {
+            <div class="myevents_flash myevents_flash_success">
+                <i class="fa fa-check-circle"></i>
+                <span>@successMsg</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="myevents_flash myevents_flash_error">
+                <i class="fa fa-exclamation-circle"></i>
+                <span>@errorMsg</span>
+            </div>
+        }
+
+        <div id="categoryStage">
+
+            <div class="myevents_head">
+                <div class="myevents_head_left">
+                    <h2 class="myevents_title">Choose a category</h2>
+                    <span class="myevents_count">@myCategories.Count categories</span>
+                </div>
+            </div>
+
+            @if (myCategories.Count == 0)
+            {
+                <div class="myevents_empty">
+                    <i class="fa fa-tags"></i>
+                    You have no categories yet. Create one first.
+                </div>
+            }
+            else
+            {
+                <div class="category_grid">
+                    @foreach (var c in myCategories)
+                    {
+                        int catId = Convert.ToInt32(c["id"]);
+                        int countInCat = myEvents.Count(e => Convert.ToInt32(e["category_id"]) == catId);
+
+                        <button type="button"
+                                class="category_tile"
+                                data-category-id="@catId"
+                                data-category-name="@c["name"]">
+                            <span class="category_tile_icon"><i class="fa fa-tags"></i></span>
+                            <h3 class="category_tile_name">@c["name"]</h3>
+                            <p class="category_tile_count">@countInCat event@(countInCat == 1 ? "" : "s")</p>
+                        </button>
+                    }
+                </div>
+            }
+
+        </div>
+
+        <div id="eventStage" style="display: none;">
+
+            <div class="myevents_head">
+                <div class="myevents_head_left">
+                    <h2 class="myevents_title" id="eventStageTitle">Events</h2>
+                    <span class="myevents_count" id="eventStageCount">0 events</span>
+                </div>
+                <button type="button" class="myevents_back_btn" id="backToCategories">
+                    <i class="fa fa-arrow-left"></i>
+                    <span>Back to categories</span>
+                </button>
+            </div>
+
+            <div class="myevents_table_wrap">
+                <table class="myevents_table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="eventStageEmpty" style="display: none;" class="myevents_empty">
+                <i class="fa fa-flag"></i>
+                No events in this category yet.
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="myevents_modal" id="viewEventModal">
+        <div class="myevents_modal_box">
+            <button type="button" class="myevents_modal_close" onclick="closeViewModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="myevents_news">
+                <div class="myevents_news_image">
+                    <img id="viewEventImage" src="" alt="Event image" class="myevents_news_img">
+                </div>
+
+                <div class="myevents_news_body">
+                    <span class="myevents_news_badge" id="viewEventType">Event</span>
+                    <h2 class="myevents_news_title" id="viewEventTitle">Event name</h2>
+
+                    <div class="myevents_news_meta">
+                        <span class="myevents_news_meta_item"><i class="fa fa-calendar"></i> <span id="viewEventDate">-</span></span>
+                        <span class="myevents_news_meta_item"><i class="fa fa-clock-o"></i> <span id="viewEventTime">-</span></span>
+                        <span class="myevents_news_meta_item"><i class="fa fa-map-marker"></i> <span id="viewEventLocation">-</span></span>
+                        <span class="myevents_news_meta_item"><i class="fa fa-road"></i> <span id="viewEventDistance">-</span></span>
+                        <span class="myevents_news_meta_item"><i class="fa fa-users"></i> <span id="viewEventAge">-</span></span>
+                    </div>
+
+                    <p class="myevents_news_text" id="viewEventDescription">Event description.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="myevents_modal" id="editEventModal">
+        <div class="myevents_modal_box" style="max-width: 680px;">
+            <button type="button" class="myevents_modal_close" onclick="closeEditModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="myevents_news_body">
+                <h2 class="myevents_news_title" style="font-size: 1.4rem; margin-bottom: 0.5rem;">Edit event</h2>
+                <p style="font-size: 0.85rem; color: #777; margin: 0 0 1.5rem;">Update the event details. All fields marked * are required.</p>
+
+                <form method="post" asp-controller="Home" asp-action="EditEvent" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="EventID" id="editEventId" value="0">
+                    <input type="hidden" name="ExistingImage" id="editExistingImage" value="">
+
+                    <div class="edit_row">
+                        <div class="edit_field">
+                            <label class="edit_label">Event name *</label>
+                            <input class="edit_input" type="text" name="EventName" id="editEventName" maxlength="60" required>
+                        </div>
+                        <div class="edit_field">
+                            <label class="edit_label">Event type *</label>
+                            <input class="edit_input" type="text" name="EventType" id="editEventType" maxlength="60" required>
+                        </div>
+                    </div>
+
+                    <div class="edit_field">
+                        <label class="edit_label">Description</label>
+                        <textarea class="edit_input edit_textarea" name="Description" id="editDescription" maxlength="255"></textarea>
+                    </div>
+
+                    <div class="edit_row">
+                        <div class="edit_field">
+                            <label class="edit_label">Event date *</label>
+                            <input class="edit_input" type="date" name="Date" id="editDate" required>
+                        </div>
+                        <div class="edit_field">
+                            <label class="edit_label">Start time *</label>
+                            <input class="edit_input" type="time" name="StartTime" id="editStartTime" required>
+                        </div>
+                    </div>
+
+                    <div class="edit_field">
+                        <label class="edit_label">Location *</label>
+                        <input class="edit_input" type="text" name="Location" id="editLocation" maxlength="70" required>
+                    </div>
+
+                    <div class="edit_row">
+                        <div class="edit_field">
+                            <label class="edit_label">Distance (km) *</label>
+                            <input class="edit_input" type="number" step="0.01" min="0.01" max="999.99" name="Distance" id="editDistance" required>
+                        </div>
+                        <div class="edit_field">
+                            <label class="edit_label">Minimum age *</label>
+                            <input class="edit_input" type="number" min="0" max="120" name="Age" id="editAge" required>
+                        </div>
+                    </div>
+
+                    <div class="edit_field">
+                        <label class="edit_label">Category *</label>
+                        <select class="edit_input edit_select" name="CategoryId" id="editCategoryId" required>
+                            <option value="">Select a category</option>
+                            @foreach (var c in myCategories)
+                            {
+                                <option value="@c["id"]">@c["name"]</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="edit_field">
+                        <label class="edit_label">New image (optional)</label>
+                        <input class="edit_input" type="file" name="ImageFile" accept="image/*">
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end; flex-wrap: wrap;">
+                        <button type="button" onclick="closeEditModal()" class="edit_btn edit_btn_light">Cancel</button>
+                        <button type="submit" class="edit_btn edit_btn_primary">
+                            <i class="fa fa-check"></i> Save changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="myevents_modal" id="deleteEventModal">
+        <div class="myevents_modal_box" style="max-width: 440px;">
+            <button type="button" class="myevents_modal_close" onclick="closeDeleteModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div style="padding: 2rem; text-align: center;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: #fbeaea; color: #c0392b; font-size: 1.4rem; margin-bottom: 1.25rem;">
+                    <i class="fa fa-trash"></i>
+                </div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; color: #000; margin: 0 0 0.5rem;">Delete this event?</h3>
+                <p style="font-size: 0.9rem; color: #777; line-height: 1.6; margin: 0 0 1.75rem;">
+                    You are about to delete <strong id="deleteEventName">this event</strong>. This action cannot be undone.
+                </p>
+
+                <form method="post" asp-controller="Home" asp-action="DeleteEvent">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="deleteEventId" value="0">
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button type="button" onclick="closeDeleteModal()" style="flex: 1; padding: 0.75rem 1rem; border: 1px solid #e5e5e5; border-radius: 5px; background: #fff; color: #555; font-family: inherit; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer;">Cancel</button>
+                        <button type="submit" style="flex: 1; padding: 0.75rem 1rem; border: 1px solid #000; border-radius: 5px; background: #000; color: #fff; font-family: inherit; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer;">
+                            <i class="fa fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+            (function () {
+                const STORAGE_KEY = 'myevents_selected_category';
+
+                const allEvents = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(myEvents.Select(e => new
+                    {
+                                eventID = Convert.ToInt32(e["eventID"]),
+                                eventName = e["eventName"]?.ToString() ?? "",
+                                description = e["description"]?.ToString() ?? "",
+                                date = Convert.ToDateTime(e["date"]).ToString("yyyy-MM-dd"),
+                                dateDisplay = Convert.ToDateTime(e["date"]).ToString("dd MMM yyyy"),
+                                startTime = ((TimeSpan)e["startTime"]).ToString(@"hh\:mm"),
+                                location = e["location"]?.ToString() ?? "",
+                                distance = e["distance"]?.ToString() ?? "",
+                                eventType = e["eventType"]?.ToString() ?? "",
+                        age = e["age"]?.ToString() ?? "",
+                                categoryId = Convert.ToInt32(e["category_id"]),
+                                image = e["image"]?.ToString() ?? "",
+                                joinedCount = events_manager.count_participants(Convert.ToInt32(e["eventID"]))
+                        })));
+
+                const placeholders = [
+                    "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=800&q=80"
+                ];
+
+                const categoryStage = document.getElementById('categoryStage');
+                const eventStage = document.getElementById('eventStage');
+                const eventStageTitle = document.getElementById('eventStageTitle');
+                const eventStageCount = document.getElementById('eventStageCount');
+                const eventsTableBody = document.getElementById('eventsTableBody');
+                const eventStageEmpty = document.getElementById('eventStageEmpty');
+                const backBtn = document.getElementById('backToCategories');
+
+                function resolveImage(img, index) {
+                    return img && img.length > 0 ? img : placeholders[index % placeholders.length];
+                }
+
+                function renderEventRows(catId) {
+                    const filtered = allEvents.filter(ev => ev.categoryId === catId);
+
+                    eventsTableBody.innerHTML = '';
+
+                    if (filtered.length === 0) {
+                        eventStageEmpty.style.display = 'block';
+                        eventStageCount.textContent = '0 events';
+                        return;
+                    }
+
+                    eventStageEmpty.style.display = 'none';
+                    eventStageCount.textContent = filtered.length + ' event' + (filtered.length === 1 ? '' : 's');
+
+                    filtered.forEach(function (ev, index) {
+                        const imgSrc = resolveImage(ev.image, index);
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML =
+                            '<td data-label="#" class="myevents_id_cell">' + (index + 1) + '</td>' +
+                            '<td data-label="Event">' +
+                            '<div class="myevents_name_cell">' +
+                            '<span class="myevents_name_icon"><i class="fa fa-flag"></i></span>' +
+                            '<span>' + ev.eventName + '</span>' +
+                            '</div>' +
+                            '</td>' +
+                            '<td data-label="Date">' + ev.dateDisplay + '</td>' +
+                            '<td data-label="Location">' + ev.location + '</td>' +
+                            '<td data-label="Joined">' +
+                            '<span class="myevents_pill"><i class="fa fa-users"></i> ' + ev.joinedCount + ' joined</span>' +
+                            '</td>' +
+                            '<td data-label="Actions">' +
+                            '<div class="myevents_actions">' +
+                            '<button type="button" class="myevents_action_btn myevents_action_view" ' +
+                            'data-id="' + ev.eventID + '" ' +
+                            'data-name="' + ev.eventName + '" ' +
+                            'data-description="' + ev.description + '" ' +
+                            'data-date="' + ev.dateDisplay + '" ' +
+                            'data-time="' + ev.startTime + '" ' +
+                            'data-location="' + ev.location + '" ' +
+                            'data-distance="' + ev.distance + '" ' +
+                            'data-type="' + ev.eventType + '" ' +
+                            'data-age="' + ev.age + '" ' +
+                            'data-joined="' + ev.joinedCount + '" ' +
+                            'data-image="' + imgSrc + '" ' +
+                            'onclick="openViewModal(this)">' +
+                            '<i class="fa fa-eye"></i><span>View</span>' +
+                            '</button>' +
+                            '<button type="button" class="myevents_action_btn myevents_action_edit" ' +
+                            'data-id="' + ev.eventID + '" ' +
+                            'data-name="' + ev.eventName + '" ' +
+                            'data-description="' + ev.description + '" ' +
+                            'data-date="' + ev.date + '" ' +
+                            'data-time="' + ev.startTime + '" ' +
+                            'data-location="' + ev.location + '" ' +
+                            'data-distance="' + ev.distance + '" ' +
+                            'data-type="' + ev.eventType + '" ' +
+                            'data-age="' + ev.age + '" ' +
+                            'data-category="' + ev.categoryId + '" ' +
+                            'data-image="' + imgSrc + '" ' +
+                            'onclick="openEditModal(this)">' +
+                            '<i class="fa fa-pencil"></i><span>Edit</span>' +
+                            '</button>' +
+                            '<button type="button" class="myevents_action_btn myevents_action_delete" ' +
+                            'data-id="' + ev.eventID + '" ' +
+                            'data-name="' + ev.eventName + '" ' +
+                            'onclick="openDeleteModal(this)">' +
+                            '<i class="fa fa-trash"></i><span>Delete</span>' +
+                            '</button>' +
+                            '</div>' +
+                            '</td>';
+                        eventsTableBody.appendChild(tr);
+                    });
+                }
+
+                function showEventStage(catId, catName) {
+                    categoryStage.style.display = 'none';
+                    eventStage.style.display = 'block';
+                    eventStageTitle.textContent = catName + ' events';
+                    renderEventRows(catId);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: catId, name: catName }));
+                }
+
+                function showCategoryStage() {
+                    eventStage.style.display = 'none';
+                    categoryStage.style.display = 'block';
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+
+                document.querySelectorAll('.category_tile').forEach(function (tile) {
+                    tile.addEventListener('click', function () {
+                        const catId = parseInt(tile.getAttribute('data-category-id'), 10);
+                        const catName = tile.getAttribute('data-category-name');
+                        showEventStage(catId, catName);
+                    });
+                });
+
+                backBtn.addEventListener('click', showCategoryStage);
+
+                // Restore last selected category on refresh
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        const stillExists = document.querySelector('.category_tile[data-category-id="' + parsed.id + '"]');
+                        if (stillExists) {
+                            showEventStage(parsed.id, parsed.name);
+                        } else {
+                            localStorage.removeItem(STORAGE_KEY);
+                        }
+                    } catch (e) {
+                        localStorage.removeItem(STORAGE_KEY);
+                    }
+                }
+
+                // Modal handlers (unchanged)
+                const viewModal = document.getElementById('viewEventModal');
+                const editModal = document.getElementById('editEventModal');
+                const deleteModal = document.getElementById('deleteEventModal');
+
+                window.openViewModal = function (btn) {
+                    document.getElementById('viewEventImage').src = btn.getAttribute('data-image') || '';
+                    document.getElementById('viewEventType').textContent = btn.getAttribute('data-type') || 'Event';
+                    document.getElementById('viewEventTitle').textContent = btn.getAttribute('data-name') || '';
+                    document.getElementById('viewEventDate').textContent = btn.getAttribute('data-date') || '-';
+                    document.getElementById('viewEventTime').textContent = btn.getAttribute('data-time') || '-';
+                    document.getElementById('viewEventLocation').textContent = btn.getAttribute('data-location') || '-';
+                    document.getElementById('viewEventDistance').textContent = (btn.getAttribute('data-distance') || '-') + ' km';
+                    document.getElementById('viewEventAge').textContent = (btn.getAttribute('data-joined') || '0') + ' joined · min age ' + (btn.getAttribute('data-age') || '-');
+                    document.getElementById('viewEventDescription').textContent = btn.getAttribute('data-description') || 'No description.';
+                    viewModal.classList.add('myevents_modal_open');
+                };
+
+                window.closeViewModal = function () {
+                    viewModal.classList.remove('myevents_modal_open');
+                };
+
+                window.openEditModal = function (btn) {
+                    document.getElementById('editEventId').value = btn.getAttribute('data-id');
+                    document.getElementById('editExistingImage').value = btn.getAttribute('data-image') || '';
+                    document.getElementById('editEventName').value = btn.getAttribute('data-name') || '';
+                    document.getElementById('editEventType').value = btn.getAttribute('data-type') || '';
+                    document.getElementById('editDescription').value = btn.getAttribute('data-description') || '';
+                    document.getElementById('editDate').value = btn.getAttribute('data-date') || '';
+                    document.getElementById('editStartTime').value = btn.getAttribute('data-time') || '';
+                    document.getElementById('editLocation').value = btn.getAttribute('data-location') || '';
+                    document.getElementById('editDistance').value = btn.getAttribute('data-distance') || '';
+                    document.getElementById('editAge').value = btn.getAttribute('data-age') || '';
+                    document.getElementById('editCategoryId').value = btn.getAttribute('data-category') || '';
+                    editModal.classList.add('myevents_modal_open');
+                };
+
+                window.closeEditModal = function () {
+                    editModal.classList.remove('myevents_modal_open');
+                };
+
+                window.openDeleteModal = function (btn) {
+                    document.getElementById('deleteEventId').value = btn.getAttribute('data-id');
+                    document.getElementById('deleteEventName').textContent = btn.getAttribute('data-name');
+                    deleteModal.classList.add('myevents_modal_open');
+                };
+
+                window.closeDeleteModal = function () {
+                    deleteModal.classList.remove('myevents_modal_open');
+                };
+
+                viewModal.addEventListener('click', function (e) {
+                    if (e.target === viewModal) closeViewModal();
+                });
+
+                editModal.addEventListener('click', function (e) {
+                    if (e.target === editModal) closeEditModal();
+                });
+
+                deleteModal.addEventListener('click', function (e) {
+                    if (e.target === deleteModal) closeDeleteModal();
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        closeViewModal();
+                        closeEditModal();
+                        closeDeleteModal();
+                    }
+                });
+            })();
+    </script>
+
+</body>
+</html>

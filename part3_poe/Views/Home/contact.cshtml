@@ -1,0 +1,184 @@
+﻿@model part3_poe.Models.ContactMessage
+
+@{
+    ViewData["Title"] = "Contact";
+}
+
+@await Html.PartialAsync("_menu")
+
+<link rel="stylesheet" href="~/css/contact.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/landing.css" asp-append-version="true" />
+
+<main class="contact">
+
+    <section class="contact_intro">
+        <div class="contact_intro_overlay"></div>
+        <div class="contact_intro_content">
+            <h1 class="contact_title">Get in touch<br>with us.</h1>
+            <p class="contact_subtitle">
+                Questions about an event, a registration, or organizing your own race?
+                Send us a message and we'll get back to you.
+            </p>
+        </div>
+    </section>
+
+    <section class="contact_main">
+        <div class="contact_grid">
+
+            <div class="contact_form_wrap">
+                <h2 class="contact_section_title">Send a message</h2>
+                <p class="contact_section_text">Fill in the form below and we'll respond as soon as possible.</p>
+
+                @if (TempData["ContactSuccess"] != null)
+                {
+                    <div class="contact_alert">
+                        <i class="fa fa-check-circle"></i>
+                        <span>@TempData["ContactSuccess"]</span>
+                    </div>
+                }
+
+                <form class="contact_form" asp-controller="Home" asp-action="Contact" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="contact_field">
+                        <label class="contact_label" asp-for="Name">Full name</label>
+                        <input class="contact_input" asp-for="Name" type="text" placeholder="Your name">
+                        <span class="contact_error" asp-validation-for="Name"></span>
+                    </div>
+
+                    <div class="contact_field">
+                        <label class="contact_label" asp-for="Email">Email</label>
+                        <input class="contact_input" asp-for="Email" type="email" placeholder="your@gmail.com">
+                        <span class="contact_error" asp-validation-for="Email"></span>
+                    </div>
+
+                    <div class="contact_field">
+                        <label class="contact_label" asp-for="Subject">Subject</label>
+                        <input class="contact_input" asp-for="Subject" type="text" placeholder="What is this about?">
+                        <span class="contact_error" asp-validation-for="Subject"></span>
+                    </div>
+
+                    <div class="contact_field">
+                        <label class="contact_label" asp-for="Message">Message</label>
+                        <textarea class="contact_input contact_textarea" asp-for="Message" rows="6" placeholder="Write your message..."></textarea>
+                        <span class="contact_error" asp-validation-for="Message"></span>
+                    </div>
+
+                    <button class="contact_btn" type="submit">
+                        <i class="fa fa-paper-plane"></i>
+                        <span>Send message</span>
+                    </button>
+                </form>
+            </div>
+
+            <aside class="contact_info">
+                <h2 class="contact_section_title">Contact details</h2>
+                <p class="contact_section_text">You can also reach us directly through the details below.</p>
+
+                <ul class="contact_info_list">
+                    <li class="contact_info_item">
+                        <div class="contact_info_icon"><i class="fa fa-map-marker"></i></div>
+                        <div>
+                            <h3 class="contact_info_title">Location</h3>
+                            <p class="contact_info_text">Johannesburg, South Africa</p>
+                        </div>
+                    </li>
+
+                    <li class="contact_info_item">
+                        <div class="contact_info_icon"><i class="fa fa-phone"></i></div>
+                        <div>
+                            <h3 class="contact_info_title">Phone</h3>
+                            <p class="contact_info_text">+27 11 234 5678</p>
+                        </div>
+                    </li>
+
+                    <li class="contact_info_item">
+                        <div class="contact_info_icon"><i class="fa fa-envelope"></i></div>
+                        <div>
+                            <h3 class="contact_info_title">Email</h3>
+                            <p class="contact_info_text">hello@example.com</p>
+                        </div>
+                    </li>
+
+                    <li class="contact_info_item">
+                        <div class="contact_info_icon"><i class="fa fa-clock-o"></i></div>
+                        <div>
+                            <h3 class="contact_info_title">Office hours</h3>
+                            <p class="contact_info_text">Mon - Fri, 08:00 - 17:00</p>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="contact_socials">
+                    <a class="contact_social" href="#" aria-label="Facebook"><i class="fa fa-facebook"></i></a>
+                    <a class="contact_social" href="#" aria-label="Twitter"><i class="fa fa-twitter"></i></a>
+                    <a class="contact_social" href="#" aria-label="Instagram"><i class="fa fa-instagram"></i></a>
+                    <a class="contact_social" href="#" aria-label="YouTube"><i class="fa fa-youtube-play"></i></a>
+                </div>
+            </aside>
+
+        </div>
+    </section>
+
+    <section class="landing_faq">
+        <div class="landing_section_head">
+            <h2 class="landing_section_title">Frequently asked questions</h2>
+            <p class="landing_section_text">Everything you need to know before you join or create an event.</p>
+        </div>
+
+        <div class="landing_faq_list">
+            <details class="landing_faq_item">
+                <summary class="landing_faq_question">
+                    How do I create an event?
+                    <i class="fa fa-plus"></i>
+                </summary>
+                <p class="landing_faq_answer">
+                    Register as an organizer, log in, and use the create event form to set the name, date, location, and categories for your marathon.
+                </p>
+            </details>
+
+            <details class="landing_faq_item">
+                <summary class="landing_faq_question">
+                    What are categories?
+                    <i class="fa fa-plus"></i>
+                </summary>
+                <p class="landing_faq_answer">
+                    Categories are the groups inside an event, such as 10km, 21km, 42km, or age groups. Participants pick one when they join.
+                </p>
+            </details>
+
+            <details class="landing_faq_item">
+                <summary class="landing_faq_question">
+                    How do I join an event?
+                    <i class="fa fa-plus"></i>
+                </summary>
+                <p class="landing_faq_answer">
+                    Log in as a participant, browse the events page, open an event that is open for registration, and choose your category to join.
+                </p>
+            </details>
+
+            <details class="landing_faq_item">
+                <summary class="landing_faq_question">
+                    Can I join more than one event?
+                    <i class="fa fa-plus"></i>
+                </summary>
+                <p class="landing_faq_answer">
+                    Yes. You can join any number of open events as long as you are logged in and the event accepts new participants.
+                </p>
+            </details>
+
+            <details class="landing_faq_item">
+                <summary class="landing_faq_question">
+                    Is there a fee to use the platform?
+                    <i class="fa fa-plus"></i>
+                </summary>
+                <p class="landing_faq_answer">
+                    Creating an account, browsing events, and joining as a participant is free. Any event specific fees are set by the organizer.
+                </p>
+            </details>
+        </div>
+    </section>
+
+</main>
+
+@await Html.PartialAsync("_footer")

@@ -1,0 +1,73 @@
+﻿<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="~/css/menu.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/footer.css" asp-append-version="true" />
+
+<nav class="menu" aria-label="Main navigation">
+    <div class="menu_inner">
+        <a class="menu_brand" asp-controller="Home" asp-action="Index">
+            <img src="~/images/logo.png" alt="Logo" class="menu_logo">
+        </a>
+
+        <button class="menu_toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="menuList">
+            <i class="fa fa-bars"></i>
+        </button>
+
+        <ul class="menu_list" id="menuList">
+            <li class="menu_item">
+                <a class="menu_link" asp-controller="Home" asp-action="Index"><i class="fa fa-home"></i><span>Home</span></a>
+            </li>
+            <li class="menu_item">
+                <a class="menu_link" asp-controller="Home" asp-action="About"><i class="fa fa-info-circle"></i><span>About</span></a>
+            </li>
+            <li class="menu_item">
+                <a class="menu_link" asp-controller="Home" asp-action="Events"><i class="fa fa-calendar"></i><span>Events</span></a>
+            </li>
+            <li class="menu_item">
+                <a class="menu_link" asp-controller="Home" asp-action="Contact"><i class="fa fa-envelope"></i><span>Contact</span></a>
+            </li>
+            <li class="menu_item">
+                <a class="menu_link" asp-controller="Home" asp-action="Login"><i class="fa fa-sign-in"></i><span>Login</span></a>
+            </li>
+            <li class="menu_item">
+                <a class="menu_link menu_link_accent" asp-controller="Home" asp-action="Register"><i class="fa fa-user-plus"></i><span>Register</span></a>
+            </li>
+        </ul>
+    </div>
+</nav>
+<script>
+    (function () {
+        const toggle = document.getElementById('menuToggle');
+        const list = document.getElementById('menuList');
+        if (!toggle || !list) return;
+
+        toggle.addEventListener('click', function () {
+            const isOpen = list.classList.toggle('is_open');
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+
+            const icon = toggle.querySelector('i');
+            if (icon) {
+                icon.className = isOpen ? 'fa fa-times' : 'fa fa-bars';
+            }
+        });
+
+        list.querySelectorAll('.menu_link').forEach(function (link) {
+            link.addEventListener('click', function () {
+                if (window.innerWidth <= 768) {
+                    list.classList.remove('is_open');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    const icon = toggle.querySelector('i');
+                    if (icon) icon.className = 'fa fa-bars';
+                }
+            });
+        });
+
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 768) {
+                list.classList.remove('is_open');
+                toggle.setAttribute('aria-expanded', 'false');
+                const icon = toggle.querySelector('i');
+                if (icon) icon.className = 'fa fa-bars';
+            }
+        });
+    })();
+</script>

@@ -1,0 +1,973 @@
+﻿@using System.Data.SqlClient
+@using part_2API.backend
+
+@{
+    Layout = null;
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userId = Context.Session.GetString("user_id") ?? "0";
+    int participant_id = Int32.Parse(userId);
+
+    manage_join_events join_manager = new manage_join_events();
+
+    var enrolments = new List<Dictionary<string, object>>();
+    var myResults = new List<Dictionary<string, object>>();
+
+    SqlDataReader read_enrolments = join_manager.view_my_enrolmentsSite(participant_id);
+
+    try
+    {
+        while (read_enrolments.Read())
+        {
+            enrolments.Add(new Dictionary<string, object>
+            {
+                { "enrolmentID", read_enrolments["enrolmentID"] },
+                { "enrolmentDate", read_enrolments["enrolmentDate"] },
+                { "eventID", read_enrolments["eventID"] },
+                { "eventName", read_enrolments["eventName"] },
+                { "date", read_enrolments["date"] },
+                { "location", read_enrolments["location"] },
+                { "eventType", read_enrolments["eventType"] },
+                { "image", read_enrolments["image"] }
+            });
+        }
+    }
+    finally
+    {
+        read_enrolments.Close();
+    }
+
+    SqlDataReader read_results = join_manager.view_my_resultsSite(participant_id);
+
+    try
+    {
+        while (read_results.Read())
+        {
+            myResults.Add(new Dictionary<string, object>
+            {
+                { "resultID", read_results["resultID"] },
+                { "eventName", read_results["eventName"] },
+                { "date", read_results["date"] },
+                { "finishTime", read_results["finishTime"] },
+                { "finishPosition", read_results["finishPosition"] }
+            });
+        }
+    }
+    finally
+    {
+        read_results.Close();
+    }
+
+    var successMsg = TempData["CancelSuccess"] as string;
+    var errorMsg = TempData["CancelError"] as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background: #ffffff;
+            }
+
+            body {
+                font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+                background: #ffffff;
+                color: #333;
+                padding: 0;
+                margin: 0;
+            }
+
+            .joined_banner {
+                position: relative;
+                width: 100%;
+                margin: 0 0 2.5rem;
+                background-image: url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                padding: 5rem 2rem;
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .joined_banner_overlay {
+                position: absolute;
+                inset: 0;
+                background-color: rgba(128, 128, 128, 0.6);
+                z-index: 1;
+            }
+
+            .joined_banner_content {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                text-align: left;
+                color: #ffffff;
+            }
+
+                .joined_banner_content h1 {
+                    color: #ffffff;
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    line-height: 1.1;
+                    margin: 0 0 0.6rem;
+                    letter-spacing: -0.5px;
+                }
+
+                .joined_banner_content .sub {
+                    color: #e6e6e6;
+                    font-size: 1.05rem;
+                    line-height: 1.7;
+                    margin: 0;
+                }
+
+            .joined_content {
+                padding: 0 2rem 2rem;
+            }
+
+            .joined_flash {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.85rem 1rem;
+                border-radius: 5px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+                line-height: 1.5;
+            }
+
+            .joined_flash_success {
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            .joined_flash_error {
+                background: #fbeaea;
+                color: #c0392b;
+            }
+
+            .joined_flash i {
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+
+            .joined_head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1.5rem;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .joined_head_left {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .joined_title {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0;
+            }
+
+            .joined_count {
+                font-size: 0.75rem;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .joined_browse_btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                padding: 0.5rem 1rem;
+                background: #000;
+                color: #fff;
+                border: 1px solid #000;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                text-decoration: none;
+                transition: background-color 0.15s ease;
+            }
+
+                .joined_browse_btn:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .joined_table_wrap {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .joined_table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.875rem;
+            }
+
+                .joined_table thead {
+                    background: #000;
+                    color: #ffffff;
+                    text-align: left;
+                }
+
+                .joined_table th {
+                    padding: 0.85rem 1rem;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    white-space: nowrap;
+                }
+
+                .joined_table td {
+                    padding: 0.85rem 1rem;
+                    border-bottom: 1px solid #ececec;
+                    color: #555;
+                    vertical-align: middle;
+                }
+
+                .joined_table tbody tr:hover {
+                    background: #fafafa;
+                }
+
+                .joined_table tbody tr:last-child td {
+                    border-bottom: none;
+                }
+
+            .joined_id_cell {
+                font-family: 'SF Mono', Menlo, monospace;
+                font-size: 0.8rem;
+                color: #888;
+            }
+
+            .joined_event_cell {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 600;
+                color: #000;
+            }
+
+            .joined_event_image {
+                width: 60px;
+                height: 44px;
+                border-radius: 5px;
+                overflow: hidden;
+                background: #f2f2f2;
+                flex-shrink: 0;
+            }
+
+                .joined_event_image img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
+                }
+
+            .joined_status {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+            }
+
+            .joined_status_enrolled {
+                color: #2f6b2f;
+            }
+
+            .joined_status_finished {
+                color: #000;
+            }
+
+            .joined_status i {
+                font-size: 0.7rem;
+            }
+
+            .joined_result_cell {
+                font-family: 'SF Mono', Menlo, monospace;
+                font-size: 0.8rem;
+                color: #333;
+            }
+
+            .joined_actions {
+                display: inline-flex;
+                gap: 0.35rem;
+            }
+
+            .joined_action_btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.35rem;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                font-family: inherit;
+                font-size: 0.85rem;
+                cursor: pointer;
+                border: 1px solid transparent;
+                transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .joined_action_view {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .joined_action_view:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .joined_action_cancel {
+                background: #fbeaea;
+                color: #c0392b;
+                border-color: #f5d0d0;
+            }
+
+                .joined_action_cancel:hover {
+                    background: #f7d5d5;
+                }
+
+            .joined_empty {
+                padding: 3rem 1rem;
+                text-align: center;
+                color: #888;
+                font-size: 0.9rem;
+            }
+
+                .joined_empty i {
+                    display: block;
+                    font-size: 1.75rem;
+                    color: #ccc;
+                    margin-bottom: 0.75rem;
+                }
+
+            .joined_modal {
+                position: fixed;
+                inset: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0, 0, 0, 0.55);
+                z-index: 500;
+                padding: 1rem;
+            }
+
+            .joined_modal_open {
+                display: flex;
+            }
+
+            .joined_modal_box {
+                background: #ffffff;
+                border-radius: 8px;
+                max-width: 720px;
+                width: 100%;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+                animation: joined_modal_in 0.25s ease;
+                position: relative;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            @@keyframes joined_modal_in {
+                from {
+                    opacity: 0;
+                    transform: translateY(12px) scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            .joined_modal_close {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                z-index: 3;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: rgba(0, 0, 0, 0.6);
+                color: #fff;
+                border: none;
+                cursor: pointer;
+                font-size: 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.15s ease;
+            }
+
+                .joined_modal_close:hover {
+                    background: rgba(0, 0, 0, 0.85);
+                }
+
+            .news_modal {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .news_modal_image {
+                width: 100%;
+                height: 280px;
+                overflow: hidden;
+                background: #f2f2f2;
+            }
+
+            .news_modal_img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+
+            .news_modal_body {
+                padding: 2rem;
+            }
+
+            .news_modal_badge {
+                display: inline-block;
+                padding: 0.3rem 0.75rem;
+                background: #000;
+                color: #fff;
+                border-radius: 5px;
+                font-size: 0.7rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 1rem;
+            }
+
+            .news_modal_title {
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: #000;
+                line-height: 1.2;
+                margin: 0 0 0.75rem;
+                letter-spacing: -0.5px;
+            }
+
+            .news_modal_meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1rem 1.5rem;
+                padding: 1rem 0;
+                border-top: 1px solid #ececec;
+                border-bottom: 1px solid #ececec;
+                margin-bottom: 1.25rem;
+            }
+
+            .news_modal_meta_item {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                font-size: 0.8rem;
+                color: #666;
+            }
+
+                .news_modal_meta_item i {
+                    color: #999;
+                }
+
+            .news_modal_text {
+                font-size: 0.95rem;
+                line-height: 1.8;
+                color: #555;
+                margin: 0 0 1.25rem;
+            }
+
+            .news_modal_result {
+                display: flex;
+                gap: 1rem;
+                padding: 1rem;
+                border-radius: 5px;
+                background: #f7f7f7;
+                flex-wrap: wrap;
+            }
+
+            .news_modal_result_item {
+                display: flex;
+                flex-direction: column;
+                gap: 0.15rem;
+            }
+
+            .news_modal_result_label {
+                font-size: 0.7rem;
+                font-weight: 600;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .news_modal_result_value {
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: #000;
+                font-family: 'SF Mono', Menlo, monospace;
+            }
+
+            .confirm_modal_box {
+                background: #ffffff;
+                border-radius: 8px;
+                max-width: 440px;
+                width: 100%;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+                animation: joined_modal_in 0.25s ease;
+                position: relative;
+                padding: 2rem;
+                text-align: center;
+            }
+
+            .confirm_modal_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: #fbeaea;
+                color: #c0392b;
+                font-size: 1.4rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .confirm_modal_title {
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.5rem;
+            }
+
+            .confirm_modal_text {
+                font-size: 0.9rem;
+                color: #777;
+                line-height: 1.6;
+                margin: 0 0 1.5rem;
+            }
+
+            .confirm_modal_actions {
+                display: flex;
+                gap: 0.75rem;
+            }
+
+            .confirm_modal_btn {
+                flex: 1;
+                padding: 0.75rem 1rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.8rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+            }
+
+            .confirm_modal_btn_light {
+                background: #fff;
+                color: #555;
+                border-color: #e5e5e5;
+            }
+
+                .confirm_modal_btn_light:hover {
+                    background: #f2f2f2;
+                }
+
+            .confirm_modal_btn_dark {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .confirm_modal_btn_dark:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            @@media (max-width: 700px) {
+                .joined_banner {
+                    padding: 3.5rem 1.25rem;
+                }
+
+                .joined_banner_content h1 {
+                    font-size: 1.9rem;
+                }
+
+                .joined_table thead {
+                    display: none;
+                }
+
+                .joined_table,
+                .joined_table tbody,
+                .joined_table tr,
+                .joined_table td {
+                    display: block;
+                    width: 100%;
+                }
+
+                    .joined_table tr {
+                        border-bottom: 1px solid #ececec;
+                        padding: 0.85rem 0;
+                    }
+
+                    .joined_table td {
+                        border-bottom: none;
+                        padding: 0.35rem 1rem;
+                    }
+
+                        .joined_table td::before {
+                            content: attr(data-label);
+                            display: inline-block;
+                            font-weight: 600;
+                            color: #000;
+                            min-width: 110px;
+                            font-size: 0.72rem;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+
+                .news_modal_image {
+                    height: 200px;
+                }
+
+                .news_modal_title {
+                    font-size: 1.4rem;
+                }
+
+                .news_modal_body {
+                    padding: 1.5rem;
+                }
+            }
+
+            @@media (max-width: 600px) {
+                .joined_banner {
+                    padding: 3rem 1rem;
+                }
+
+                .joined_banner_content h1 {
+                    font-size: 1.6rem;
+                }
+
+                .joined_content {
+                    padding: 0 1rem 1.5rem;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <section class="joined_banner">
+        <div class="joined_banner_overlay"></div>
+        <div class="joined_banner_content">
+            <h1>My joined events</h1>
+            <p class="sub">All the events you've enrolled in, with the option to cancel if you change your mind.</p>
+        </div>
+    </section>
+
+    <div class="joined_content">
+
+        @if (!string.IsNullOrEmpty(successMsg))
+        {
+            <div class="joined_flash joined_flash_success">
+                <i class="fa fa-check-circle"></i>
+                <span>@successMsg</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="joined_flash joined_flash_error">
+                <i class="fa fa-exclamation-circle"></i>
+                <span>@errorMsg</span>
+            </div>
+        }
+
+        <div class="joined_head">
+            <div class="joined_head_left">
+                <h2 class="joined_title">All enrolled events</h2>
+                <span class="joined_count">@enrolments.Count total</span>
+            </div>
+
+        </div>
+
+        @if (enrolments.Count == 0)
+        {
+            <div class="joined_empty">
+                <i class="fa fa-calendar"></i>
+                You have not enrolled in any events yet. <a asp-controller="Home" asp-action="BrowseEvents" style="color:#000;font-weight:600;">Browse events</a> to join one.
+            </div>
+        }
+        else
+        {
+            <div class="joined_table_wrap">
+                <table class="joined_table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Enrolled on</th>
+                            <th>Status</th>
+                            <th>Result</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int rowNum = 0;
+                            var placeholderImages = new[]
+                            {
+                                "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=800&q=80"
+                            };
+                        }
+
+                        @foreach (var e in enrolments)
+                        {
+                            rowNum++;
+                            int enrolmentId = Convert.ToInt32(e["enrolmentID"]);
+                            string eventName = e["eventName"].ToString();
+
+                            string img = e["image"] as string;
+                            string imgSrc = string.IsNullOrEmpty(img) ? placeholderImages[rowNum % placeholderImages.Length] : img;
+
+                            var evResult = myResults.FirstOrDefault(r => r["eventName"].ToString() == eventName);
+                            bool hasResult = evResult != null;
+
+                            <tr>
+                                <td data-label="#" class="joined_id_cell">@rowNum</td>
+                                <td data-label="Event">
+                                    <div class="joined_event_cell">
+                                        <div class="joined_event_image">
+                                            <img src="@imgSrc" alt="@eventName" onerror="this.onerror=null;this.src='@placeholderImages[0]';">
+                                        </div>
+                                        <span>@eventName</span>
+                                    </div>
+                                </td>
+                                <td data-label="Date">@Convert.ToDateTime(e["date"]).ToString("dd MMM yyyy")</td>
+                                <td data-label="Location">@e["location"]</td>
+                                <td data-label="Enrolled on">@Convert.ToDateTime(e["enrolmentDate"]).ToString("dd MMM yyyy")</td>
+                                <td data-label="Status">
+                                    @if (hasResult)
+                                    {
+                                        <span class="joined_status joined_status_finished">
+                                            <i class="fa fa-flag-checkered"></i> Finished
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="joined_status joined_status_enrolled">
+                                            <i class="fa fa-check-circle"></i> Enrolled
+                                        </span>
+                                    }
+                                </td>
+                                <td data-label="Result" class="joined_result_cell">
+                                    @if (hasResult)
+                                    {
+                                        @(((TimeSpan)evResult["finishTime"]).ToString(@"hh\:mm\:ss"))
+                                        <span style="color:#999;"> · #@evResult["finishPosition"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:#bbb;">—</span>
+                                    }
+                                </td>
+                                <td data-label="Actions">
+                                    <div class="joined_actions">
+                                        <button type="button"
+                                                class="joined_action_btn joined_action_view"
+                                                data-name="@eventName"
+                                                data-date="@Convert.ToDateTime(e["date"]).ToString("dd MMM yyyy")"
+                                                data-location="@e["location"]"
+                                                data-type="@e["eventType"]"
+                                                data-enrolled="@Convert.ToDateTime(e["enrolmentDate"]).ToString("dd MMM yyyy")"
+                                                data-image="@imgSrc"
+                                                data-has-result="@(hasResult ? "1" : "0")"
+                                                data-finish-time="@(hasResult ? ((TimeSpan)evResult["finishTime"]).ToString(@"hh\:mm\:ss") : "")"
+                                                data-finish-position="@(hasResult ? evResult["finishPosition"].ToString() : "")"
+                                                onclick="openNewsModal(this)"
+                                                title="View details">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+
+                                        @if (!hasResult)
+                                        {
+                                            <button type="button"
+                                                    class="joined_action_btn joined_action_cancel"
+                                                    data-enrolment-id="@enrolmentId"
+                                                    data-event-name="@eventName"
+                                                    onclick="openCancelModal(this)"
+                                                    title="Cancel enrolment">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+    </div>
+
+    <div class="joined_modal" id="newsModal">
+        <div class="joined_modal_box">
+            <button type="button" class="joined_modal_close" onclick="closeNewsModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="news_modal">
+                <div class="news_modal_image">
+                    <img id="newsImage" src="" alt="Event image" class="news_modal_img">
+                </div>
+
+                <div class="news_modal_body">
+                    <span class="news_modal_badge" id="newsType">Event</span>
+                    <h2 class="news_modal_title" id="newsTitle">Event name</h2>
+
+                    <div class="news_modal_meta">
+                        <span class="news_modal_meta_item"><i class="fa fa-calendar"></i> <span id="newsDate">-</span></span>
+                        <span class="news_modal_meta_item"><i class="fa fa-map-marker"></i> <span id="newsLocation">-</span></span>
+                        <span class="news_modal_meta_item"><i class="fa fa-check-circle"></i> Enrolled <span id="newsEnrolled">-</span></span>
+                    </div>
+
+                    <p class="news_modal_text" id="newsText">Event description.</p>
+
+                    <div class="news_modal_result" id="newsResultBlock" style="display: none;">
+                        <div class="news_modal_result_item">
+                            <span class="news_modal_result_label">Finish time</span>
+                            <span class="news_modal_result_value" id="newsFinishTime">-</span>
+                        </div>
+                        <div class="news_modal_result_item">
+                            <span class="news_modal_result_label">Finish position</span>
+                            <span class="news_modal_result_value" id="newsFinishPosition">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="joined_modal" id="cancelModal">
+        <div class="confirm_modal_box">
+            <button type="button" class="joined_modal_close" onclick="closeCancelModal()" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="confirm_modal_icon">
+                <i class="fa fa-trash"></i>
+            </div>
+            <h3 class="confirm_modal_title">Cancel enrolment?</h3>
+            <p class="confirm_modal_text">You are about to cancel your enrolment in <strong id="cancelEventName">this event</strong>. This cannot be undone.</p>
+
+            <form method="post" asp-controller="Home" asp-action="CancelEnrolment">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="enrolmentId" id="cancelEnrolmentId" value="0">
+
+                <div class="confirm_modal_actions">
+                    <button type="button" class="confirm_modal_btn confirm_modal_btn_light" onclick="closeCancelModal()">Keep</button>
+                    <button type="submit" class="confirm_modal_btn confirm_modal_btn_dark">
+                        <i class="fa fa-trash"></i> Cancel enrolment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+            (function () {
+                const newsModal = document.getElementById('newsModal');
+                const cancelModal = document.getElementById('cancelModal');
+
+                window.openNewsModal = function (btn) {
+                    document.getElementById('newsImage').src = btn.getAttribute('data-image') || '';
+                    document.getElementById('newsType').textContent = btn.getAttribute('data-type') || 'Event';
+                    document.getElementById('newsTitle').textContent = btn.getAttribute('data-name') || '';
+                    document.getElementById('newsDate').textContent = btn.getAttribute('data-date') || '-';
+                    document.getElementById('newsLocation').textContent = btn.getAttribute('data-location') || '-';
+                    document.getElementById('newsEnrolled').textContent = btn.getAttribute('data-enrolled') || '-';
+                    document.getElementById('newsText').textContent = btn.getAttribute('data-description') || 'You are enrolled in this event.';
+
+                    const hasResult = btn.getAttribute('data-has-result') === '1';
+                    const resultBlock = document.getElementById('newsResultBlock');
+
+                    if (hasResult) {
+                        document.getElementById('newsFinishTime').textContent = btn.getAttribute('data-finish-time') || '-';
+                        document.getElementById('newsFinishPosition').textContent = '#' + btn.getAttribute('data-finish-position');
+                        resultBlock.style.display = 'flex';
+                    } else {
+                        resultBlock.style.display = 'none';
+                    }
+
+                    newsModal.classList.add('joined_modal_open');
+                };
+
+                window.closeNewsModal = function () {
+                    newsModal.classList.remove('joined_modal_open');
+                };
+
+                window.openCancelModal = function (btn) {
+                    document.getElementById('cancelEnrolmentId').value = btn.getAttribute('data-enrolment-id');
+                    document.getElementById('cancelEventName').textContent = btn.getAttribute('data-event-name');
+                    cancelModal.classList.add('joined_modal_open');
+                };
+
+                window.closeCancelModal = function () {
+                    cancelModal.classList.remove('joined_modal_open');
+                };
+
+                [newsModal, cancelModal].forEach(function (modal) {
+                    modal.addEventListener('click', function (e) {
+                        if (e.target === modal) modal.classList.remove('joined_modal_open');
+                    });
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        closeNewsModal();
+                        closeCancelModal();
+                    }
+                });
+            })();
+    </script>
+
+</body>
+</html>

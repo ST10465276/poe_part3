@@ -1,0 +1,91 @@
+﻿@model part3_poe.Models.UserLogin
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+@await Html.PartialAsync("_menu")
+
+<link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+
+<main class="login">
+
+    <section class="login_intro">
+        <div class="login_intro_overlay"></div>
+        <div class="login_intro_content">
+            <h1 class="login_title">Welcome<br>back.</h1>
+            <p class="login_subtitle">
+                Log in to join events as a participant or manage the events you organize.
+            </p>
+        </div>
+    </section>
+
+    <section class="login_main">
+        <div class="login_grid">
+
+            <div class="login_form_wrap">
+                <h2 class="login_section_title">Log in to your account</h2>
+                <p class="login_section_text">New here? <a class="login_inline_link" asp-controller="Home" asp-action="Register">Create an account</a>.</p>
+
+                @if (TempData["LoginSuccess"] != null)
+                {
+                    <div class="login_alert" style="background-color:red;">
+                        <i class="fa fa-warning" style="color:white"></i>
+                        <span style="color:white;">@TempData["LoginSuccess"]</span>
+                    </div>
+                }
+
+                <form class="login_form" asp-controller="Home" asp-action="Login" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="login_field">
+                        <label class="login_label" asp-for="Email">Email</label>
+                        <input class="login_input" asp-for="Email" type="email" placeholder="your@gmail.com">
+                        <span class="login_error" asp-validation-for="Email"></span>
+                    </div>
+
+                    <div class="login_field">
+                        <label class="login_label" asp-for="Password">Password</label>
+                        <input class="login_input" asp-for="Password" type="password" placeholder="Your password">
+                        <span class="login_error" asp-validation-for="Password"></span>
+                    </div>
+
+                    <div class="login_row">
+                        <label class="login_checkbox_wrap">
+                            <input class="login_checkbox" asp-for="RememberMe" type="checkbox">
+                            <span class="login_checkbox_text">Remember me</span>
+                        </label>
+                        <a class="login_inline_link" href="">Forgot password?</a>
+                    </div>
+
+                    <button class="login_btn" type="submit">
+                        <i class="fa fa-sign-in"></i>
+                        <span>Log in</span>
+                    </button>
+                </form>
+            </div>
+
+            <aside class="login_side">
+                <div class="login_welcome">
+                    <div class="login_welcome_icon">
+                        <i class="fa fa-flag-checkered"></i>
+                    </div>
+                    <h3 class="login_welcome_title">Welcome back to the marathon</h3>
+                    <p class="login_welcome_text">
+                        Once you're logged in you can pick up where you left off, whether that's joining a new event or managing one you created.
+                    </p>
+
+                    <ul class="login_perks">
+                        <li><i class="fa fa-check"></i><span>Join events in any category</span></li>
+                        <li><i class="fa fa-check"></i><span>See the events you've joined</span></li>
+                        <li><i class="fa fa-check"></i><span>Manage the events you organize</span></li>
+                    </ul>
+                </div>
+            </aside>
+
+        </div>
+    </section>
+
+</main>
+
+@await Html.PartialAsync("_footer")

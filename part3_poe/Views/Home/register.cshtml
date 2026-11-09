@@ -1,0 +1,175 @@
+﻿@model part3_poe.Models.UserRegister
+
+@{
+    ViewData["Title"] = "Register";
+}
+
+@await Html.PartialAsync("_menu")
+
+<link rel="stylesheet" href="~/css/register.css" asp-append-version="true" />
+
+<main class="register">
+
+    <section class="register_intro">
+        <div class="register_intro_overlay"></div>
+        <div class="register_intro_content">
+            <h1 class="register_title">Join the<br>marathon.</h1>
+            <p class="register_subtitle">
+                Create an account to organize your own event or join marathons as a participant.
+            </p>
+        </div>
+    </section>
+
+    <section class="register_main">
+        <div class="register_grid">
+
+            <div class="register_form_wrap">
+                <h2 class="register_section_title">Create your account</h2>
+                <p class="register_section_text">Already have an account? <a class="register_inline_link" asp-controller="Home" asp-action="Login">Log in here</a>.</p>
+
+                @if (TempData["RegisterSuccess"] != null && TempData["RegisterSuccess"]?.ToString() == "User registered successfully..")
+                {
+                    <div class="register_alert">
+                        <i class="fa fa-check-circle"></i>
+                        <span>@TempData["RegisterSuccess"], you can now login!!</span>
+                    </div>
+                }
+                else if (TempData["RegisterSuccess"] != null)
+                {
+                    <div class="register_alert" style="background-color:red;">
+                        <i class="fa fa-warning" style="color:white;"></i>
+                        <span style="color:white;">@TempData["RegisterSuccess"]</span>
+                    </div>
+                }
+
+                <form class="register_form" asp-controller="Home" asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="register_field">
+                        <label class="register_label" asp-for="FullName">Full name</label>
+                        <input class="register_input" asp-for="FullName" type="text" placeholder="Your full name">
+                        <span class="register_error" asp-validation-for="FullName"></span>
+                    </div>
+
+                    <div class="register_field">
+                        <label class="register_label" asp-for="Email">Email</label>
+                        <input class="register_input" asp-for="Email" type="email" placeholder="your@gmail.com">
+                        <span class="register_error" asp-validation-for="Email"></span>
+                    </div>
+
+                    <div class="register_field">
+                        <label class="register_label" asp-for="Role">Role</label>
+                        <select class="register_input register_select" asp-for="Role" id="registerRole">
+                            <option value="">Select a role</option>
+                            <option value="User">User</option>
+                            <option value="Organizer">Organizer</option>
+                        </select>
+                        <span class="register_error" asp-validation-for="Role"></span>
+                    </div>
+
+                    <div class="register_field">
+                        <label class="register_label" asp-for="Password">Password</label>
+                        <input class="register_input" asp-for="Password" type="password" placeholder="At least 6 characters">
+                        <span class="register_error" asp-validation-for="Password"></span>
+                    </div>
+
+                    <div class="register_field">
+                        <label class="register_label" asp-for="ConfirmPassword">Confirm password</label>
+                        <input class="register_input" asp-for="ConfirmPassword" type="password" placeholder="Repeat your password">
+                        <span class="register_error" asp-validation-for="ConfirmPassword"></span>
+                    </div>
+
+                    <button class="register_btn" type="submit">
+                        <i class="fa fa-user-plus"></i>
+                        <span>Create account</span>
+                    </button>
+                </form>
+            </div>
+
+            <aside class="register_side">
+                <div class="register_welcome" id="registerWelcome">
+                    <div class="register_welcome_icon" id="registerWelcomeIcon">
+                        <i class="fa fa-users"></i>
+                    </div>
+                    <h3 class="register_welcome_title" id="registerWelcomeTitle">Welcome to the marathon</h3>
+                    <p class="register_welcome_text" id="registerWelcomeText">
+                        Pick your role above and we'll show you what you can do on the platform.
+                    </p>
+
+                    <ul class="register_perks" id="registerPerks">
+                        <li><i class="fa fa-check"></i><span>Create an account in seconds</span></li>
+                        <li><i class="fa fa-check"></i><span>Browse events across South Africa</span></li>
+                        <li><i class="fa fa-check"></i><span>Join events as a participant</span></li>
+                    </ul>
+                </div>
+            </aside>
+
+        </div>
+    </section>
+
+</main>
+
+@await Html.PartialAsync("_footer")
+
+<script>
+    (function () {
+        const role = document.getElementById('registerRole');
+        const icon = document.getElementById('registerWelcomeIcon');
+        const title = document.getElementById('registerWelcomeTitle');
+        const text = document.getElementById('registerWelcomeText');
+        const perks = document.getElementById('registerPerks');
+
+        const content = {
+            'Participant': {
+                icon: 'fa fa-running',
+                title: 'Welcome, runner',
+                text: 'As a participant you can browse open marathons, pick a category, and join any event that fits.',
+                perks: [
+                    'Browse all open events',
+                    'Pick a category and join',
+                    'See your joined events'
+                ]
+            },
+            'Organizer': {
+                icon: 'fa fa-flag',
+                title: 'Welcome, organizer',
+                text: 'As an organizer you can create your own marathon, add categories, and track everyone who joins.',
+                perks: [
+                    'Create your own events',
+                    'Add custom categories',
+                    'See everyone who joined'
+                ]
+            },
+            '': {
+                icon: 'fa fa-running',
+                title: 'Welcome to the marathon',
+                text: "Pick your role above and we'll show you what you can do on the platform.",
+                perks: [
+                    'Create an account in seconds',
+                    'Browse events across South Africa',
+                    'Join events as a participant'
+                ]
+            }
+        };
+
+        function render(roleValue) {
+            const data = content[roleValue] || content[''];
+
+            icon.className = 'register_welcome_icon';
+            icon.innerHTML = '<i class="' + data.icon + '"></i>';
+            title.textContent = data.title;
+            text.textContent = data.text;
+
+            perks.innerHTML = '';
+            data.perks.forEach(function (p) {
+                const li = document.createElement('li');
+                li.innerHTML = '<i class="fa fa-check"></i><span>' + p + '</span>';
+                perks.appendChild(li);
+            });
+        }
+
+        role.addEventListener('change', function () {
+            render(role.value);
+        });
+    })();
+</script>

@@ -1,0 +1,849 @@
+﻿@using System.Data.SqlClient
+@using part_2API.backend
+
+@{
+    Layout = null;
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userRole = Context.Session.GetString("user_role") ?? "Participant";
+    var userId = Context.Session.GetString("user_id") ?? "0";
+    var isOrganizer = userRole == "Organizer";
+
+    int participant_id = Int32.Parse(userId);
+
+    manage_join_events join_manager = new manage_join_events();
+    manage_events events_manager = new manage_events();
+    manage_categories categories_manager = new manage_categories();
+    manage_results results_manager = new manage_results();
+
+    var enrolments = new List<Dictionary<string, object>>();
+    var myEvents = new List<Dictionary<string, object>>();
+    var myCategories = new List<Dictionary<string, object>>();
+    var myResults = new List<Dictionary<string, object>>();
+
+    int totalParticipants = 0;
+    var eventParticipants = new Dictionary<int, int>();
+
+    if (isOrganizer)
+    {
+        SqlDataReader read_events = events_manager.view_eventsSite(participant_id);
+
+        try
+        {
+            while (read_events.Read())
+            {
+                var row = new Dictionary<string, object>
+                {
+                    { "eventID", read_events["eventID"] },
+                    { "eventName", read_events["eventName"] },
+                    { "description", read_events["description"] },
+                    { "date", read_events["date"] },
+                    { "location", read_events["location"] },
+                    { "distance", read_events["distance"] },
+                    { "eventType", read_events["eventType"] },
+                    { "age", read_events["age"] },
+                    { "startTime", read_events["startTime"] },
+                    { "category_id", read_events["category_id"] },
+                    { "user_id", read_events["user_id"] },
+                    { "image", read_events["image"] }
+                };
+                myEvents.Add(row);
+            }
+        }
+        finally
+        {
+            read_events.Close();
+        }
+
+        SqlDataReader read_categories = categories_manager.view_categoriesSite(participant_id);
+
+        try
+        {
+            while (read_categories.Read())
+            {
+                var row = new Dictionary<string, object>
+                {
+                    { "id", read_categories["id"] },
+                    { "name", read_categories["name"] },
+                    { "description", read_categories["description"] },
+                    { "organizer_id", read_categories["organizer_id"] }
+                };
+                myCategories.Add(row);
+            }
+        }
+        finally
+        {
+            read_categories.Close();
+        }
+
+        foreach (var ev in myEvents)
+        {
+            int evId = Convert.ToInt32(ev["eventID"]);
+            int countForEvent = 0;
+
+            SqlDataReader read_enrolments = results_manager.view_enrolments_by_eventSite(evId, participant_id);
+
+            try
+            {
+                while (read_enrolments.Read())
+                {
+                    countForEvent++;
+                }
+            }
+            finally
+            {
+                read_enrolments.Close();
+            }
+
+            eventParticipants[evId] = countForEvent;
+            totalParticipants += countForEvent;
+        }
+    }
+    else
+    {
+        SqlDataReader read_enrolments = join_manager.view_my_enrolmentsSite(participant_id);
+
+        try
+        {
+            while (read_enrolments.Read())
+            {
+                var row = new Dictionary<string, object>
+                {
+                    { "enrolmentID", read_enrolments["enrolmentID"] },
+                    { "enrolmentDate", read_enrolments["enrolmentDate"] },
+                    { "eventID", read_enrolments["eventID"] },
+                    { "eventName", read_enrolments["eventName"] },
+                    { "date", read_enrolments["date"] },
+                    { "location", read_enrolments["location"] },
+                    { "eventType", read_enrolments["eventType"] },
+                    { "image", read_enrolments["image"] }
+                };
+                enrolments.Add(row);
+            }
+        }
+        finally
+        {
+            read_enrolments.Close();
+        }
+
+        SqlDataReader read_results = join_manager.view_my_resultsSite(participant_id);
+
+        try
+        {
+            while (read_results.Read())
+            {
+                var row = new Dictionary<string, object>
+                {
+                    { "resultID", read_results["resultID"] },
+                    { "eventName", read_results["eventName"] },
+                    { "date", read_results["date"] },
+                    { "finishTime", read_results["finishTime"] },
+                    { "finishPosition", read_results["finishPosition"] }
+                };
+                myResults.Add(row);
+            }
+        }
+        finally
+        {
+            read_results.Close();
+        }
+    }
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background: #ffffff;
+            }
+
+            body {
+                font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+                background: #ffffff;
+                color: #333;
+                padding: 0;
+                margin: 0;
+            }
+
+            .welcome_banner {
+                position: relative;
+                width: 100%;
+                margin: 0 0 2.5rem;
+                background-image: url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                padding: 5rem 2rem;
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .welcome_banner_overlay {
+                position: absolute;
+                inset: 0;
+                background-color: rgba(128, 128, 128, 0.6);
+                z-index: 1;
+            }
+
+            .welcome_banner_content {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                text-align: left;
+                color: #ffffff;
+            }
+
+                .welcome_banner_content h1 {
+                    color: #ffffff;
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    line-height: 1.1;
+                    margin: 0 0 0.6rem;
+                    letter-spacing: -0.5px;
+                }
+
+                .welcome_banner_content .sub {
+                    color: #e6e6e6;
+                    font-size: 1.05rem;
+                    line-height: 1.7;
+                    margin: 0;
+                }
+
+                    .welcome_banner_content .sub strong {
+                        color: #ffffff;
+                    }
+
+            .dashboard_content {
+                padding: 0 2rem 2rem;
+            }
+
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1.25rem;
+                margin-bottom: 2.5rem;
+            }
+
+            .stat {
+                background: #ffffff;
+                border: 1px solid #ececec;
+                border-radius: 5px;
+                padding: 1.5rem;
+            }
+
+            .stat_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 42px;
+                height: 42px;
+                border-radius: 5px;
+                background: #000;
+                color: #fff;
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .stat_num {
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.2rem;
+                line-height: 1.1;
+            }
+
+            .stat_label {
+                font-size: 0.75rem;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin: 0;
+            }
+
+            .section {
+                margin-bottom: 2.5rem;
+            }
+
+            .section_head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1rem;
+            }
+
+            .section_title {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0;
+            }
+
+            .section_link {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #000;
+                text-decoration: none;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+                .section_link:hover {
+                    color: #555;
+                }
+
+            .empty {
+                padding: 2.5rem 0;
+                text-align: left;
+                color: #888;
+                background: #ffffff;
+                border: none;
+                box-shadow: none;
+                font-size: 0.9rem;
+            }
+
+                .empty i {
+                    display: block;
+                    font-size: 1.75rem;
+                    color: #ccc;
+                    margin-bottom: 0.75rem;
+                }
+
+            .event_cards {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
+
+            .event_card {
+                display: flex;
+                flex-direction: column;
+                background: #ffffff;
+                border: none;
+                border-radius: 5px;
+                overflow: hidden;
+                box-sizing: border-box;
+                box-shadow: none;
+            }
+
+            .event_card_image {
+                width: 100%;
+                overflow: hidden;
+                border-radius: 5px;
+                background: #f2f2f2;
+            }
+
+            .event_card_img {
+                width: 100%;
+                height: 180px;
+                object-fit: cover;
+                display: block;
+                border-radius: 5px;
+            }
+
+            .event_card_body {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                padding: 1rem 0 0;
+            }
+
+            .event_card_title {
+                font-size: 1rem;
+                font-weight: 600;
+                color: #000000;
+                margin: 0 0 0.5rem;
+                line-height: 1.3;
+            }
+
+            .event_card_text {
+                font-size: 0.85rem;
+                line-height: 1.6;
+                color: #777777;
+                margin: 0 0 1rem;
+            }
+
+            .event_card_meta {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem 0.85rem;
+            }
+
+                .event_card_meta li {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    font-size: 0.75rem;
+                    color: #666666;
+                    background: #f7f7f7;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 0.25rem 0.6rem;
+                }
+
+                .event_card_meta i {
+                    color: #999999;
+                    flex-shrink: 0;
+                }
+
+            .category_cards {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.25rem;
+            }
+
+            .category_card {
+                display: flex;
+                flex-direction: column;
+                padding: 1.25rem 0;
+                background: #ffffff;
+                border: none;
+                border-radius: 5px;
+                box-sizing: border-box;
+                box-shadow: none;
+            }
+
+            .category_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 44px;
+                height: 44px;
+                border-radius: 5px;
+                background: #000;
+                color: #fff;
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+            }
+
+            .category_name {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.35rem;
+            }
+
+            .category_desc {
+                font-size: 0.85rem;
+                line-height: 1.6;
+                color: #777;
+                margin: 0 0 1rem;
+            }
+
+            .category_meta {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-top: auto;
+            }
+
+                .category_meta li {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                    font-size: 0.7rem;
+                    color: #666;
+                    background: #f7f7f7;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 0.22rem 0.55rem;
+                }
+
+                .category_meta i {
+                    color: #999;
+                    flex-shrink: 0;
+                }
+
+            .results_table_wrap {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .results_table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.875rem;
+            }
+
+                .results_table thead {
+                    background: #000;
+                    color: #ffffff;
+                    text-align: left;
+                }
+
+                .results_table th {
+                    padding: 0.85rem 1rem;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    white-space: nowrap;
+                }
+
+                .results_table td {
+                    padding: 0.85rem 1rem;
+                    border-bottom: 1px solid #ececec;
+                    color: #555;
+                    vertical-align: middle;
+                }
+
+                .results_table tbody tr:hover {
+                    background: #fafafa;
+                }
+
+                .results_table tbody tr:last-child td {
+                    border-bottom: none;
+                }
+
+            .results_id_cell {
+                font-family: 'SF Mono', Menlo, monospace;
+                font-size: 0.8rem;
+                color: #888;
+            }
+
+            .results_badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.7rem;
+                font-weight: 600;
+                padding: 0.25rem 0.6rem;
+                border-radius: 5px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            @@media (max-width: 900px) {
+                .welcome_banner {
+                    padding: 4rem 1.25rem;
+                }
+
+                .welcome_banner_content h1 {
+                    font-size: 2rem;
+                }
+
+                .grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+
+                .event_cards {
+                    grid-template-columns: 1fr;
+                }
+
+                .category_cards {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+
+            @@media (max-width: 700px) {
+                .results_table thead {
+                    display: none;
+                }
+
+                .results_table,
+                .results_table tbody,
+                .results_table tr,
+                .results_table td {
+                    display: block;
+                    width: 100%;
+                }
+
+                    .results_table tr {
+                        border-bottom: 1px solid #ececec;
+                        padding: 0.85rem 0;
+                    }
+
+                    .results_table td {
+                        border-bottom: none;
+                        padding: 0.35rem 1rem;
+                    }
+
+                        .results_table td::before {
+                            content: attr(data-label);
+                            display: inline-block;
+                            font-weight: 600;
+                            color: #000;
+                            min-width: 110px;
+                            font-size: 0.72rem;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+            }
+
+            @@media (max-width: 600px) {
+                .welcome_banner {
+                    padding: 3rem 1rem;
+                }
+
+                .welcome_banner_content h1 {
+                    font-size: 1.6rem;
+                }
+
+                .welcome_banner_content .sub {
+                    font-size: 0.95rem;
+                }
+
+                .dashboard_content {
+                    padding: 0 1rem 1.5rem;
+                }
+
+                .grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .event_card_img {
+                    height: 160px;
+                }
+
+                .category_cards {
+                    grid-template-columns: 1fr;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    @if (isOrganizer)
+    {
+        <section class="welcome_banner">
+            <div class="welcome_banner_overlay"></div>
+            <div class="welcome_banner_content">
+                <h1>Welcome back, @userName</h1>
+                <p class="sub">You are logged in as <strong>Organizer</strong>. Here's what's happening with your events.</p>
+            </div>
+        </section>
+
+        <div class="dashboard_content">
+
+            <div class="grid">
+                <div class="stat">
+                    <div class="stat_icon"><i class="fa fa-flag"></i></div>
+                    <p class="stat_num">@myEvents.Count</p>
+                    <p class="stat_label">Events created</p>
+                </div>
+                <div class="stat">
+                    <div class="stat_icon"><i class="fa fa-users"></i></div>
+                    <p class="stat_num">@totalParticipants</p>
+                    <p class="stat_label">Total participants</p>
+                </div>
+                <div class="stat">
+                    <div class="stat_icon"><i class="fa fa-tags"></i></div>
+                    <p class="stat_num">@myCategories.Count</p>
+                    <p class="stat_label">Categories</p>
+                </div>
+                <div class="stat">
+                    <div class="stat_icon"><i class="fa fa-calendar"></i></div>
+                    <p class="stat_num">@myEvents.Count(e => Convert.ToDateTime(e["date"]) >= DateTime.Today)</p>
+                    <p class="stat_label">Upcoming this month</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section_head">
+                    <h2 class="section_title">Your events</h2>
+                    <a class="section_link" href="#" onclick="parent.navigate('/Home/MyEvents', 'My Events'); return false;">View all</a>
+                </div>
+
+                @if (myEvents.Count == 0)
+                {
+                    <div class="empty">
+                        <i class="fa fa-flag"></i>
+                        You have not created any events yet.
+                    </div>
+                }
+                else
+                {
+                    <div class="event_cards">
+                        @{
+                            int evIndex = 0;
+                            var evImages = new[]
+                            {
+                                "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=800&q=80"
+                            };
+                        }
+
+                        @foreach (var e in myEvents)
+                        {
+                            int evId = Convert.ToInt32(e["eventID"]);
+                            int joinedCount = eventParticipants.ContainsKey(evId) ? eventParticipants[evId] : 0;
+
+                            string img = e["image"] as string;
+                            string imgSrc = string.IsNullOrEmpty(img) ? evImages[evIndex % evImages.Length] : img;
+                            evIndex++;
+
+                            <article class="event_card">
+                                <div class="event_card_image">
+                                    <img src="@imgSrc" alt="@e["eventName"]" class="event_card_img">
+                                </div>
+                                <div class="event_card_body">
+                                    <h3 class="event_card_title">@e["eventName"]</h3>
+                                    <p class="event_card_text">@e["description"]</p>
+                                    <ul class="event_card_meta">
+                                        <li><i class="fa fa-calendar"></i><span>@Convert.ToDateTime(e["date"]).ToString("dd MMM yyyy")</span></li>
+                                        <li><i class="fa fa-map-marker"></i><span>@e["location"]</span></li>
+                                        <li><i class="fa fa-tags"></i><span>@e["eventType"]</span></li>
+                                        <li><i class="fa fa-road"></i><span>@e["distance"] km</span></li>
+                                        <li><i class="fa fa-users"></i><span>@joinedCount joined</span></li>
+                                    </ul>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="section">
+                <div class="section_head">
+                    <h2 class="section_title">Your categories</h2>
+                    <a class="section_link" href="#" onclick="parent.navigate('/Home/Categories', 'Categories'); return false;">View all</a>
+                </div>
+
+                @if (myCategories.Count == 0)
+                {
+                    <div class="empty">
+                        <i class="fa fa-tags"></i>
+                        You have no categories added, please add them first.
+                    </div>
+                }
+                else
+                {
+                    <div class="category_cards">
+                        @foreach (var c in myCategories)
+                        {
+                            <article class="category_card">
+                                <div class="category_icon"><i class="fa fa-tags"></i></div>
+                                <h3 class="category_name">@c["name"]</h3>
+                                <p class="category_desc">@c["description"]</p>
+                                <ul class="category_meta">
+                                    You own this
+                                </ul>
+                            </article>
+                        }
+                    </div>
+                }
+            </div>
+
+        </div>
+    }
+    else
+    {
+        <section class="welcome_banner">
+            <div class="welcome_banner_overlay"></div>
+            <div class="welcome_banner_content">
+                <h1>Welcome back, @userName</h1>
+                <p class="sub">You are logged in as <strong>Participant</strong>. Here's what you're taking part in.</p>
+            </div>
+        </section>
+
+        <div class="dashboard_content">
+
+            <div class="grid">
+                <div class="stat">
+                    <div class="stat_icon"><i class="fa fa-users"></i></div>
+                    <p class="stat_num">@enrolments.Count</p>
+                    <p class="stat_label">Events joined</p>
+                </div>
+                <div class="stat">
+                    <div class="stat_icon"><i class="fa fa-calendar"></i></div>
+                    <p class="stat_num">@enrolments.Count(e => Convert.ToDateTime(e["date"]) >= DateTime.Today)</p>
+                    <p class="stat_label">Upcoming events</p>
+                </div>
+                <div class="stat">
+                    <div class="stat_icon"><i class="fa fa-trophy"></i></div>
+                    <p class="stat_num">@myResults.Count</p>
+                    <p class="stat_label">Results recorded</p>
+                </div>
+                <div class="stat">
+                    <div class="stat_icon"><i class="fa fa-clock-o"></i></div>
+                    <p class="stat_num">
+                        @(myResults.Count > 0
+                            ? ((TimeSpan)myResults.Min(r => (TimeSpan)r["finishTime"])).ToString(@"hh\:mm\:ss")
+                            : "--")
+                    </p>
+                    <p class="stat_label">Best finish time</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section_head">
+                    <h2 class="section_title">Your joined events</h2>
+                    <a class="section_link" href="#" onclick="parent.navigate('/Home/MyJoinedEvents', 'My Joined Events'); return false;">View all</a>
+                </div>
+
+                @if (enrolments.Count == 0)
+                {
+                    <div class="empty">
+                        <i class="fa fa-calendar"></i>
+                        You have not enrolled in any events yet.
+                    </div>
+                }
+                else
+                {
+                    <div class="event_cards">
+                        @{
+                            int cardIndex = 0;
+                            var cardImages = new[]
+                            {
+                                "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=800&q=80",
+                                "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=800&q=80"
+                            };
+                        }
+
+                        @foreach (var e in enrolments)
+                        {
+                            string img = e["image"] as string;
+                            string imgSrc = string.IsNullOrEmpty(img) ? cardImages[cardIndex % cardImages.Length] : img;
+                            cardIndex++;
+
+                            <article class="event_card">
+                                <div class="event_card_image">
+                                    <img src="@imgSrc" alt="@e["eventName"]" class="event_card_img">
+                                </div>
+                                <div class="event_card_body">
+                                    <h3 class="event_card_title">@e["eventName"]</h3>
+                                    <p class="event_card_text">@e["eventType"] event at @e["location"]. Enrolled on @Convert.ToDateTime(e["enrolmentDate"]).ToString("dd MMM yyyy").</p>
+                                    <ul class="event_card_meta">
+                                        <li><i class="fa fa-calendar"></i><span>@Convert.ToDateTime(e["date"]).ToString("dd MMM yyyy")</span></li>
+                                        <li><i class="fa fa-map-marker"></i><span>@e["location"]</span></li>
+                                        <li><i class="fa fa-tags"></i><span>@e["eventType"]</span></li>
+                                        <li><i class="fa fa-check-circle"></i><span>Enrolled</span></li>
+                                    </ul>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </div>
+
+         
+
+        </div>
+    }
+
+</body>
+</html>

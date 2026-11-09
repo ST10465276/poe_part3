@@ -1,0 +1,373 @@
+﻿@using System.Data.SqlClient
+@using part_2API.backend
+
+@{
+    ViewData["Title"] = "Events";
+    Layout = null;
+
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userId = Context.Session.GetString("user_id") ?? "0";
+
+    manage_join_events join_manager = new manage_join_events();
+
+    var categories = new List<Dictionary<string, object>>();
+    var allEvents = new List<Dictionary<string, object>>();
+
+    SqlDataReader read_categories = join_manager.view_all_categoriesSite();
+    try
+    {
+        while (read_categories.Read())
+        {
+            categories.Add(new Dictionary<string, object>
+            {
+                { "id", read_categories["id"] },
+                { "name", read_categories["name"] },
+                { "description", read_categories["description"] }
+            });
+        }
+    }
+    finally { read_categories.Close(); }
+
+    SqlDataReader read_events = join_manager.view_all_eventsSite();
+    try
+    {
+        while (read_events.Read())
+        {
+            allEvents.Add(new Dictionary<string, object>
+            {
+                { "eventID", read_events["eventID"] },
+                { "eventName", read_events["eventName"] },
+                { "description", read_events["description"] },
+                { "date", read_events["date"] },
+                { "location", read_events["location"] },
+                { "eventType", read_events["eventType"] },
+                { "startTime", read_events["startTime"] },
+                { "distance", read_events["distance"] },
+                { "age", read_events["age"] },
+                { "category_id", read_events["category_id"] },
+                { "image", read_events["image"] }
+            });
+        }
+    }
+    finally { read_events.Close(); }
+}
+
+@await Html.PartialAsync("_menu")
+
+<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
+
+<main class="events">
+
+    <section class="events_intro">
+        <div class="events_intro_overlay"></div>
+        <div class="events_intro_content">
+            <h1 class="events_title">Find your next<br>marathon.</h1>
+            <p class="events_subtitle">
+                Pick a category or search by name to find the event that fits.
+            </p>
+        </div>
+    </section>
+
+    <section class="events_categories">
+        <div class="events_section_head">
+            <h2 class="events_section_title">Choose a category</h2>
+            <p class="events_section_text">Select a category to show the events in that category.</p>
+        </div>
+
+        <div class="events_category_grid" id="eventsCategoryGrid">
+            <button type="button" class="events_category_card events_category_active" data-category="all">
+                <div class="events_category_icon"><i class="fa fa-th-large"></i></div>
+                <h3 class="events_category_name">All events</h3>
+                <p class="events_category_text">Show every event in every category.</p>
+            </button>
+
+            @foreach (var c in categories)
+            {
+                <button type="button" class="events_category_card" data-category="@c["id"]">
+                    <div class="events_category_icon"><i class="fa fa-tags"></i></div>
+                    <h3 class="events_category_name">@c["name"]</h3>
+                    <p class="events_category_text">@c["description"]</p>
+                </button>
+            }
+        </div>
+    </section>
+
+    <section class="events_list_section" id="eventsListSection">
+        <div class="events_section_head">
+            <h2 class="events_section_title" id="eventsListTitle">Events</h2>
+            <p class="events_section_text" id="eventsCount">Showing 1-4 of @allEvents.Count events.</p>
+        </div>
+
+        <div class="events_search">
+            <div class="events_search_wrap">
+                <i class="fa fa-search events_search_icon"></i>
+                <input type="search"
+                       id="eventsSearchInput"
+                       class="events_search_input"
+                       placeholder="Search events by name..."
+                       aria-label="Search events by name">
+            </div>
+        </div>
+
+        <div class="events_grid" id="eventsGrid">
+            @for (int i = 0; i < allEvents.Count; i++)
+            {
+                var ev = allEvents[i];
+                string img = ev["image"] as string;
+                string imageUrl = string.IsNullOrEmpty(img)
+                    ? (i % 4 == 0 ? "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80"
+                     : i % 4 == 1 ? "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80"
+                     : i % 4 == 2 ? "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=800&q=80"
+                     : "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=800&q=80")
+                    : img;
+
+                <article class="events_card" data-category="@ev["category_id"]" data-name="@ev["eventName"].ToString().ToLower()">
+                    <div class="events_card_image">
+                        <img src="@imageUrl" alt="@ev["eventName"]" class="events_card_img">
+                    </div>
+                    <div class="events_card_body">
+                        <h3 class="events_card_title">@ev["eventName"]</h3>
+                        <p class="events_card_text">@ev["description"]</p>
+                        <ul class="events_card_meta">
+                            <li><i class="fa fa-calendar"></i><span>@Convert.ToDateTime(ev["date"]).ToString("dd MMM yyyy")</span></li>
+                            <li><i class="fa fa-clock-o"></i><span>@(((TimeSpan)ev["startTime"]).ToString(@"hh\:mm"))</span></li>
+                            <li><i class="fa fa-map-marker"></i><span>@ev["location"]</span></li>
+                            <li><i class="fa fa-tags"></i><span>@ev["eventType"]</span></li>
+                        </ul>
+                        <button type="button"
+                                class="events_card_link"
+                                data-id="@ev["eventID"]"
+                                data-name="@ev["eventName"]"
+                                data-description="@ev["description"]"
+                                data-date="@Convert.ToDateTime(ev["date"]).ToString("dd MMM yyyy")"
+                                data-time="@(((TimeSpan)ev["startTime"]).ToString(@"hh\:mm"))"
+                                data-location="@ev["location"]"
+                                data-type="@ev["eventType"]"
+                                data-distance="@ev["distance"]"
+                                data-age="@ev["age"]"
+                                data-image="@imageUrl"
+                                onclick="openEventModal(this)"
+                                aria-label="Read more about @ev["eventName"]">
+                            <i class="fa fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <p class="events_empty" id="eventsEmpty" style="display: none;">No events match your search.</p>
+
+        <nav class="events_pagination" id="eventsPagination" aria-label="Events pagination">
+            <button type="button" class="events_page_link events_page_prev events_page_disabled" data-page="prev" aria-label="Previous page">
+                <i class="fa fa-chevron-left"></i>
+            </button>
+            <div class="events_page_numbers" id="eventsPageNumbers"></div>
+            <button type="button" class="events_page_link events_page_next events_page_disabled" data-page="next" aria-label="Next page">
+                <i class="fa fa-chevron-right"></i>
+            </button>
+        </nav>
+    </section>
+
+</main>
+
+<div class="events_modal" id="eventModal">
+    <div class="events_modal_box">
+        <button type="button" class="events_modal_close" onclick="closeEventModal()" aria-label="Close">
+            <i class="fa fa-times"></i>
+        </button>
+
+        <div class="events_news">
+            <div class="events_news_image">
+                <img id="modalEventImage" src="" alt="Event image" class="events_news_img">
+            </div>
+
+            <div class="events_news_body">
+                <span class="events_news_badge" id="modalEventType">Event</span>
+                <h2 class="events_news_title" id="modalEventTitle">Event name</h2>
+
+                <div class="events_news_meta">
+                    <span class="events_news_meta_item"><i class="fa fa-calendar"></i> <span id="modalEventDate">-</span></span>
+                    <span class="events_news_meta_item"><i class="fa fa-clock-o"></i> <span id="modalEventTime">-</span></span>
+                    <span class="events_news_meta_item"><i class="fa fa-map-marker"></i> <span id="modalEventLocation">-</span></span>
+                    <span class="events_news_meta_item"><i class="fa fa-road"></i> <span id="modalEventDistance">-</span></span>
+                    <span class="events_news_meta_item"><i class="fa fa-user"></i> <span id="modalEventAge">-</span></span>
+                </div>
+
+                <p class="events_news_text" id="modalEventDescription">Event description.</p>
+
+                <div class="events_news_actions">
+                    <a class="events_news_btn events_news_btn_primary" href="/Home/BrowseEvents">
+                        <i class="fa fa-plus"></i>
+                        <span>Join event</span>
+                    </a>
+                    <button type="button" class="events_news_btn events_news_btn_light" onclick="closeEventModal()">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_footer")
+
+<script>
+    (function () {
+        const categoryGrid = document.getElementById('eventsCategoryGrid');
+        const grid = document.getElementById('eventsGrid');
+        const count = document.getElementById('eventsCount');
+        const empty = document.getElementById('eventsEmpty');
+        const pagination = document.getElementById('eventsPagination');
+        const pageNumbers = document.getElementById('eventsPageNumbers');
+        const listTitle = document.getElementById('eventsListTitle');
+        const listSection = document.getElementById('eventsListSection');
+        const searchInput = document.getElementById('eventsSearchInput');
+        const modal = document.getElementById('eventModal');
+
+        const cards = Array.from(grid.querySelectorAll('.events_card'));
+        const perPage = 4;
+        const categoryButtons = categoryGrid.querySelectorAll('.events_category_card');
+
+        let activeCategory = 'all';
+        let searchTerm = '';
+        let current = 1;
+        let filtered = cards.slice();
+        let pages = 1;
+
+        function scrollToEvents() {
+            listSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function filterCards() {
+            const term = searchTerm.trim().toLowerCase();
+
+            filtered = cards.filter(function (card) {
+                const matchesCategory = activeCategory === 'all'
+                    || card.getAttribute('data-category') === String(activeCategory);
+
+                const matchesSearch = term === ''
+                    || card.getAttribute('data-name').includes(term);
+
+                return matchesCategory && matchesSearch;
+            });
+
+            pages = Math.max(1, Math.ceil(filtered.length / perPage));
+            if (current > pages) current = 1;
+        }
+
+        function renderPagination() {
+            pageNumbers.innerHTML = '';
+
+            for (let p = 1; p <= pages; p++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'events_page_link';
+                btn.setAttribute('data-page', p);
+                btn.textContent = p;
+                if (p === current) btn.classList.add('events_page_active');
+                pageNumbers.appendChild(btn);
+            }
+
+            pagination.querySelector('[data-page="prev"]').classList.toggle('events_page_disabled', current === 1);
+            pagination.querySelector('[data-page="next"]').classList.toggle('events_page_disabled', current === pages);
+        }
+
+        function renderCards() {
+            cards.forEach(function (card) {
+                card.style.display = 'none';
+            });
+
+            if (filtered.length === 0) {
+                empty.style.display = 'block';
+                count.textContent = 'No events match your search.';
+                pagination.style.display = 'none';
+                return;
+            }
+
+            empty.style.display = 'none';
+            pagination.style.display = 'flex';
+
+            const start = (current - 1) * perPage;
+            const end = start + perPage;
+            filtered.slice(start, end).forEach(function (card) {
+                card.style.display = '';
+            });
+
+            count.textContent = 'Showing ' + (start + 1) + '-' + Math.min(end, filtered.length) + ' of ' + filtered.length + ' events.';
+        }
+
+        function render() {
+            filterCards();
+            renderCards();
+            renderPagination();
+        }
+
+        categoryGrid.addEventListener('click', function (e) {
+            const btn = e.target.closest('.events_category_card');
+            if (!btn) return;
+
+            categoryButtons.forEach(function (b) {
+                b.classList.remove('events_category_active');
+            });
+            btn.classList.add('events_category_active');
+
+            activeCategory = btn.getAttribute('data-category');
+            current = 1;
+
+            if (activeCategory === 'all') {
+                listTitle.textContent = 'All events';
+            } else {
+                listTitle.textContent = btn.querySelector('.events_category_name').textContent + ' events';
+            }
+
+            render();
+            scrollToEvents();
+        });
+
+        searchInput.addEventListener('input', function (e) {
+            searchTerm = e.target.value;
+            current = 1;
+            render();
+        });
+
+        pagination.addEventListener('click', function (e) {
+            const btn = e.target.closest('.events_page_link');
+            if (!btn || btn.classList.contains('events_page_disabled')) return;
+
+            const page = btn.getAttribute('data-page');
+            if (page === 'prev' && current > 1) current--;
+            else if (page === 'next' && current < pages) current++;
+            else if (page !== 'prev' && page !== 'next') current = parseInt(page, 10);
+
+            render();
+            scrollToEvents();
+        });
+
+        window.openEventModal = function (btn) {
+            document.getElementById('modalEventImage').src = btn.getAttribute('data-image') || '';
+            document.getElementById('modalEventType').textContent = btn.getAttribute('data-type') || 'Event';
+            document.getElementById('modalEventTitle').textContent = btn.getAttribute('data-name') || '';
+            document.getElementById('modalEventDate').textContent = btn.getAttribute('data-date') || '-';
+            document.getElementById('modalEventTime').textContent = btn.getAttribute('data-time') || '-';
+            document.getElementById('modalEventLocation').textContent = btn.getAttribute('data-location') || '-';
+            document.getElementById('modalEventDistance').textContent = (btn.getAttribute('data-distance') || '-') + ' km';
+            document.getElementById('modalEventAge').textContent = 'Min age ' + (btn.getAttribute('data-age') || '-');
+            document.getElementById('modalEventDescription').textContent = btn.getAttribute('data-description') || 'No description.';
+            modal.classList.add('events_modal_open');
+        };
+
+        window.closeEventModal = function () {
+            modal.classList.remove('events_modal_open');
+        };
+
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) closeEventModal();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeEventModal();
+        });
+
+        render();
+    })();
+</script>

@@ -1,0 +1,867 @@
+﻿@using System.Data.SqlClient
+@using part_2API.backend
+@model part_2API.Models.CategoryCreate
+@using part3_poe;
+@{
+    Layout = null;
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userId = Context.Session.GetString("user_id") ?? "0";
+    int organizer_id = Int32.Parse(userId);
+
+    manage_categories categories_manager = new manage_categories();
+
+    var myCategories = new List<Dictionary<string, object>>();
+
+    SqlDataReader read_categories = categories_manager.view_categoriesSite(organizer_id);
+
+    try
+    {
+        while (read_categories.Read())
+        {
+            var row = new Dictionary<string, object>
+            {
+                { "id", read_categories["id"] },
+                { "name", read_categories["name"] },
+                { "description", read_categories["description"] },
+                { "organizer_id", read_categories["organizer_id"] }
+            };
+            myCategories.Add(row);
+        }
+    }
+    finally
+    {
+        read_categories.Close();
+    }
+
+    var successMsg = TempData["CategorySuccess"] as string;
+    var errorMsg = TempData["CategoryError"] as string;
+    bool modalOpen = !ViewData.ModelState.IsValid || !string.IsNullOrEmpty(errorMsg);
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background: #ffffff;
+            }
+
+            body {
+                font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+                background: #ffffff;
+                color: #333;
+                padding: 0;
+                margin: 0;
+            }
+
+            .categories_banner {
+                position: relative;
+                width: 100%;
+                margin: 0 0 2.5rem;
+                background-image: url('https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                padding: 5rem 2rem;
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .categories_banner_overlay {
+                position: absolute;
+                inset: 0;
+                background-color: rgba(128, 128, 128, 0.6);
+                z-index: 1;
+            }
+
+            .categories_banner_content {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                text-align: left;
+                color: #ffffff;
+            }
+
+                .categories_banner_content h1 {
+                    color: #ffffff;
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    line-height: 1.1;
+                    margin: 0 0 0.6rem;
+                    letter-spacing: -0.5px;
+                }
+
+                .categories_banner_content .sub {
+                    color: #e6e6e6;
+                    font-size: 1.05rem;
+                    line-height: 1.7;
+                    margin: 0;
+                }
+
+            .categories_content {
+                padding: 0 2rem 2rem;
+            }
+
+            .categories_list_head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1.5rem;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .categories_list_left {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .categories_list_title {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0;
+            }
+
+            .categories_count {
+                font-size: 0.75rem;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .categories_add_btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1.25rem;
+                background: #000;
+                color: #fff;
+                border: none;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                transition: background-color 0.15s ease;
+            }
+
+                .categories_add_btn:hover {
+                    background: #333;
+                }
+
+                .categories_add_btn i {
+                    font-size: 0.9rem;
+                }
+
+            .categories_flash {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.85rem 1rem;
+                border-radius: 5px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+                line-height: 1.5;
+            }
+
+            .categories_flash_success {
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            .categories_flash_error {
+                background: #fbeaea;
+                color: #c0392b;
+            }
+
+            .categories_flash i {
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+
+            .categories_table_wrap {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .categories_table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.875rem;
+            }
+
+                .categories_table thead {
+                    background: #000;
+                    color: #ffffff;
+                    text-align: left;
+                }
+
+                .categories_table th {
+                    padding: 0.85rem 1rem;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    white-space: nowrap;
+                }
+
+                .categories_table td {
+                    padding: 0.85rem 1rem;
+                    border-bottom: 1px solid #ececec;
+                    color: #555;
+                    vertical-align: middle;
+                }
+
+                .categories_table tbody tr:hover {
+                    background: #fafafa;
+                }
+
+                .categories_table tbody tr:last-child td {
+                    border-bottom: none;
+                }
+
+            .categories_name_cell {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 600;
+                color: #000;
+            }
+
+            .categories_name_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 32px;
+                height: 32px;
+                border-radius: 5px;
+                background: #000;
+                color: #fff;
+                font-size: 0.8rem;
+                flex-shrink: 0;
+            }
+
+            .categories_id_cell {
+                font-family: 'SF Mono', Menlo, monospace;
+                font-size: 0.8rem;
+                color: #888;
+            }
+
+            .categories_desc_cell {
+                color: #666;
+                max-width: 480px;
+            }
+
+            .categories_pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                font-size: 0.72rem;
+                color: #666;
+                background: #f7f7f7;
+                border-radius: 5px;
+                padding: 0.2rem 0.55rem;
+            }
+
+                .categories_pill i {
+                    color: #999;
+                    font-size: 0.7rem;
+                }
+
+            .categories_actions {
+                display: inline-flex;
+                gap: 0.35rem;
+            }
+
+            .categories_action_btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.35rem;
+                padding: 0.4rem 0.7rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+                transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .categories_action_edit {
+                background: #f2f2f2;
+                color: #333;
+                border-color: #e5e5e5;
+            }
+
+                .categories_action_edit:hover {
+                    background: #e6e6e6;
+                }
+
+            .categories_action_delete {
+                background: #fbeaea;
+                color: #c0392b;
+                border-color: #f5d0d0;
+            }
+
+                .categories_action_delete:hover {
+                    background: #f7d5d5;
+                }
+
+            .categories_empty {
+                padding: 3rem 1rem;
+                text-align: center;
+                color: #888;
+                font-size: 0.9rem;
+            }
+
+                .categories_empty i {
+                    display: block;
+                    font-size: 1.75rem;
+                    color: #ccc;
+                    margin-bottom: 0.75rem;
+                }
+
+            .categories_modal {
+                position: fixed;
+                inset: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0, 0, 0, 0.45);
+                z-index: 500;
+                padding: 1rem;
+            }
+
+            .categories_modal_open {
+                display: flex;
+            }
+
+            .categories_modal_box {
+                background: #ffffff;
+                border-radius: 8px;
+                padding: 2rem;
+                max-width: 480px;
+                width: 100%;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+                animation: categories_modal_in 0.2s ease;
+            }
+
+            @@keyframes categories_modal_in {
+                from {
+                    opacity: 0;
+                    transform: translateY(8px) scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            .categories_modal_head {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .categories_modal_title {
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.35rem;
+            }
+
+            .categories_modal_text {
+                font-size: 0.85rem;
+                color: #777;
+                line-height: 1.6;
+                margin: 0;
+            }
+
+            .categories_modal_close {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 32px;
+                height: 32px;
+                border-radius: 5px;
+                background: #f2f2f2;
+                color: #555;
+                border: none;
+                cursor: pointer;
+                font-size: 0.9rem;
+                flex-shrink: 0;
+                transition: background-color 0.15s ease;
+            }
+
+                .categories_modal_close:hover {
+                    background: #e6e6e6;
+                }
+
+            .categories_field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+                margin-bottom: 1rem;
+            }
+
+            .categories_label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #333;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .categories_input {
+                width: 100%;
+                padding: 0.75rem 0.9rem;
+                border: 1px solid #e5e5e5;
+                border-radius: 5px;
+                background: #ffffff;
+                color: #333;
+                font-family: inherit;
+                font-size: 0.9rem;
+                outline: none;
+                transition: border-color 0.15s ease;
+                box-sizing: border-box;
+            }
+
+                .categories_input::placeholder {
+                    color: #999;
+                }
+
+                .categories_input:focus {
+                    border-color: #000;
+                }
+
+            .categories_textarea {
+                resize: vertical;
+                min-height: 90px;
+            }
+
+            .categories_error {
+                font-size: 0.75rem;
+                color: #c0392b;
+                margin-top: 0.15rem;
+            }
+
+            .categories_modal_actions {
+                display: flex;
+                gap: 0.75rem;
+                margin-top: 1.5rem;
+            }
+
+            .categories_modal_btn {
+                flex: 1;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.8rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+                transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .categories_modal_btn_light {
+                background: #ffffff;
+                color: #555;
+                border-color: #e5e5e5;
+            }
+
+                .categories_modal_btn_light:hover {
+                    background: #f2f2f2;
+                }
+
+            .categories_modal_btn_dark {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .categories_modal_btn_dark:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            @@media (max-width: 900px) {
+                .categories_banner {
+                    padding: 4rem 1.25rem;
+                }
+
+                .categories_banner_content h1 {
+                    font-size: 2rem;
+                }
+            }
+
+            @@media (max-width: 700px) {
+                .categories_table thead {
+                    display: none;
+                }
+
+                .categories_table,
+                .categories_table tbody,
+                .categories_table tr,
+                .categories_table td {
+                    display: block;
+                    width: 100%;
+                }
+
+                    .categories_table tr {
+                        border-bottom: 1px solid #ececec;
+                        padding: 0.85rem 0;
+                    }
+
+                    .categories_table td {
+                        border-bottom: none;
+                        padding: 0.35rem 1rem;
+                    }
+
+                        .categories_table td::before {
+                            content: attr(data-label);
+                            display: inline-block;
+                            font-weight: 600;
+                            color: #000;
+                            min-width: 110px;
+                            font-size: 0.72rem;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+            }
+
+            @@media (max-width: 600px) {
+                .categories_banner {
+                    padding: 3rem 1rem;
+                }
+
+                .categories_banner_content h1 {
+                    font-size: 1.6rem;
+                }
+
+                .categories_content {
+                    padding: 0 1rem 1.5rem;
+                }
+
+                .categories_modal_box {
+                    padding: 1.5rem;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <section class="categories_banner">
+        <div class="categories_banner_overlay"></div>
+        <div class="categories_banner_content">
+            <h1>Your categories</h1>
+            <p class="sub">Categories are the groups inside your events, like 10km, 21km, or 42km.</p>
+        </div>
+    </section>
+
+    <div class="categories_content">
+
+        @if (!string.IsNullOrEmpty(successMsg))
+        {
+            <div class="categories_flash categories_flash_success">
+                <i class="fa fa-check-circle"></i>
+                <span>@successMsg</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="categories_flash categories_flash_error">
+                <i class="fa fa-exclamation-circle"></i>
+                <span>@errorMsg</span>
+            </div>
+        }
+
+        <div class="categories_list_head">
+            <div class="categories_list_left">
+                <h2 class="categories_list_title">All your categories</h2>
+                <span class="categories_count">@myCategories.Count total</span>
+            </div>
+            <button type="button" class="categories_add_btn" id="openCategoryModal">
+                <i class="fa fa-plus"></i>
+                <span>Add category</span>
+            </button>
+        </div>
+
+        @if (myCategories.Count == 0)
+        {
+            <div class="categories_empty">
+                <i class="fa fa-tags"></i>
+                You have no categories added yet. Click "Add category" to create your first one.
+            </div>
+        }
+        else
+        {
+            <div class="categories_table_wrap">
+                <table class="categories_table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Organizer</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int rowNum = 0;
+                        }
+                        @foreach (var c in myCategories)
+                        {
+                            rowNum++;
+                            <tr>
+                                <td data-label="#" class="categories_id_cell">@rowNum</td>
+                                <td data-label="Category">
+                                    <div class="categories_name_cell">
+                                        <span class="categories_name_icon"><i class="fa fa-tags"></i></span>
+                                        <span>@c["name"]</span>
+                                    </div>
+                                </td>
+                                <td data-label="Description" class="categories_desc_cell">@c["description"]</td>
+                                <td data-label="Organizer">
+                                    <span class="categories_pill">
+                                        <i class="fa fa-user"></i>
+                                        You
+                                    </span>
+                                </td>
+                                <td data-label="Actions">
+                                    <div class="categories_actions">
+                                        <button type="button"
+                                                class="categories_action_btn categories_action_edit"
+                                                data-id="@c["id"]"
+                                                data-name="@c["name"]"
+                                                data-description="@c["description"]"
+                                                onclick="openEditModal(this)">
+                                            <i class="fa fa-pencil"></i>
+                                            <span>Edit</span>
+                                        </button>
+
+                                        <button type="button"
+                                                class="categories_action_btn categories_action_delete"
+                                                data-id="@c["id"]"
+                                                data-name="@c["name"]"
+                                                onclick="openDeleteModal(this)">
+                                            <i class="fa fa-trash"></i>
+                                            <span>Delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+    </div>
+
+    <div class="categories_modal @(modalOpen ? "categories_modal_open" : "")" id="categoryModal">
+        <div class="categories_modal_box">
+            <div class="categories_modal_head">
+                <div>
+                    <h3 class="categories_modal_title">Add a category</h3>
+                    <p class="categories_modal_text">Give it a name and a short description so participants know what it is.</p>
+                </div>
+                <button type="button" class="categories_modal_close" id="closeCategoryModal" aria-label="Close">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+
+            <form method="post" asp-controller="Home" asp-action="Categories">
+                @Html.AntiForgeryToken()
+
+                <div class="categories_field">
+                    <label class="categories_label" asp-for="Name">Category name</label>
+                    <input class="categories_input" asp-for="Name" type="text" placeholder="e.g. 42km" maxlength="50">
+                    <span class="categories_error" asp-validation-for="Name"></span>
+                </div>
+
+                <div class="categories_field">
+                    <label class="categories_label" asp-for="Description">Description</label>
+                    <textarea class="categories_input categories_textarea" asp-for="Description" placeholder="What is this category about?" maxlength="255"></textarea>
+                    <span class="categories_error" asp-validation-for="Description"></span>
+                </div>
+
+                <div class="categories_modal_actions">
+                    <button type="button" class="categories_modal_btn categories_modal_btn_light" id="cancelCategoryModal">Cancel</button>
+                    <button type="submit" class="categories_modal_btn categories_modal_btn_dark">
+                        <i class="fa fa-check"></i>
+                        <span>Add category</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="categories_modal" id="editCategoryModal">
+        <div class="categories_modal_box">
+            <div class="categories_modal_head">
+                <div>
+                    <h3 class="categories_modal_title">Edit category</h3>
+                    <p class="categories_modal_text">Update the name or description of this category.</p>
+                </div>
+                <button type="button" class="categories_modal_close" id="closeEditModal" aria-label="Close">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+
+            <form method="post" asp-controller="Home" asp-action="EditCategory">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="editCategoryId" value="0">
+
+                <div class="categories_field">
+                    <label class="categories_label" for="editCategoryName">Category name</label>
+                    <input class="categories_input" id="editCategoryName" name="Name" type="text" placeholder="e.g. 42km" required maxlength="50">
+                </div>
+
+                <div class="categories_field">
+                    <label class="categories_label" for="editCategoryDescription">Description</label>
+                    <textarea class="categories_input categories_textarea" id="editCategoryDescription" name="Description" placeholder="What is this category about?" maxlength="255"></textarea>
+                </div>
+
+                <div class="categories_modal_actions">
+                    <button type="button" class="categories_modal_btn categories_modal_btn_light" id="cancelEditModal">Cancel</button>
+                    <button type="submit" class="categories_modal_btn categories_modal_btn_dark">
+                        <i class="fa fa-check"></i>
+                        <span>Save changes</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="categories_modal" id="deleteCategoryModal">
+        <div class="categories_modal_box">
+            <div class="categories_modal_head">
+                <div>
+                    <h3 class="categories_modal_title">Delete category</h3>
+                    <p class="categories_modal_text">Are you sure you want to delete this category? This action cannot be undone.</p>
+                </div>
+                <button type="button" class="categories_modal_close" id="closeDeleteModal" aria-label="Close">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+
+            <form method="post" asp-controller="Home" asp-action="DeleteCategory">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="deleteCategoryId" value="0">
+
+                <div class="categories_field">
+                    <label class="categories_label">Category name</label>
+                    <p style="font-size: 0.95rem; font-weight: 600; color: #000; margin-top: 0.25rem;" id="deleteCategoryName">-</p>
+                </div>
+
+                <div class="categories_modal_actions">
+                    <button type="button" class="categories_modal_btn categories_modal_btn_light" id="cancelDeleteModal">Cancel</button>
+                    <button type="submit" class="categories_modal_btn categories_modal_btn_dark">
+                        <i class="fa fa-trash"></i>
+                        <span>Delete</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+            (function () {
+                const addModal = document.getElementById('categoryModal');
+                const editModal = document.getElementById('editCategoryModal');
+                const deleteModal = document.getElementById('deleteCategoryModal');
+
+                document.getElementById('openCategoryModal').addEventListener('click', function () {
+                    addModal.classList.add('categories_modal_open');
+                    const nameInput = document.getElementById('Name');
+                    if (nameInput) nameInput.focus();
+                });
+
+                document.getElementById('closeCategoryModal').addEventListener('click', function () {
+                    addModal.classList.remove('categories_modal_open');
+                });
+
+                document.getElementById('cancelCategoryModal').addEventListener('click', function () {
+                    addModal.classList.remove('categories_modal_open');
+                });
+
+                document.getElementById('closeEditModal').addEventListener('click', function () {
+                    editModal.classList.remove('categories_modal_open');
+                });
+
+                document.getElementById('cancelEditModal').addEventListener('click', function () {
+                    editModal.classList.remove('categories_modal_open');
+                });
+
+                document.getElementById('closeDeleteModal').addEventListener('click', function () {
+                    deleteModal.classList.remove('categories_modal_open');
+                });
+
+                document.getElementById('cancelDeleteModal').addEventListener('click', function () {
+                    deleteModal.classList.remove('categories_modal_open');
+                });
+
+                [addModal, editModal, deleteModal].forEach(function (modal) {
+                    modal.addEventListener('click', function (e) {
+                        if (e.target === modal) {
+                            modal.classList.remove('categories_modal_open');
+                        }
+                    });
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        [addModal, editModal, deleteModal].forEach(function (m) {
+                            m.classList.remove('categories_modal_open');
+                        });
+                    }
+                });
+
+                window.openEditModal = function (btn) {
+                    document.getElementById('editCategoryId').value = btn.getAttribute('data-id');
+                    document.getElementById('editCategoryName').value = btn.getAttribute('data-name');
+                    document.getElementById('editCategoryDescription').value = btn.getAttribute('data-description') || '';
+                    editModal.classList.add('categories_modal_open');
+                    document.getElementById('editCategoryName').focus();
+                };
+
+                window.openDeleteModal = function (btn) {
+                    document.getElementById('deleteCategoryId').value = btn.getAttribute('data-id');
+                    document.getElementById('deleteCategoryName').textContent = btn.getAttribute('data-name');
+                    deleteModal.classList.add('categories_modal_open');
+                };
+            })();
+    </script>
+
+</body>
+</html>

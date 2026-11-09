@@ -1,0 +1,139 @@
+﻿@{
+    ViewData["Title"] = "About Us";
+}
+
+@await Html.PartialAsync("_menu")
+
+<link rel="stylesheet" href="~/css/about.css" asp-append-version="true" />
+
+<main class="about">
+
+    <section class="about_intro">
+        <div class="about_intro_overlay"></div>
+        <div class="about_intro_content">
+            <h1 class="about_title">We connect organizers<br>and runners.</h1>
+            <p class="about_subtitle">
+                A platform built for marathons, organizers create events with categories,
+                participants join and take part. Simple, focused, and made for the running community.
+            </p>
+        </div>
+    </section>
+
+    <section class="about_story">
+        <div class="about_story_grid">
+            <div class="about_story_text">
+                <h2 class="about_section_title">Why we built this</h2>
+                <p class="about_paragraph">
+                    Organizing a marathon should not mean juggling spreadsheets, emails, and scattered sign-up forms.
+                    We built this platform so organizers can create an event once, define their categories,
+                    and let participants join in a clear, simple flow.
+                </p>
+                <p class="about_paragraph">
+                    For participants, it means one place to find marathons, log in, join an event,
+                    and pick the category that fits. No confusion, no back-and-forth.
+                </p>
+            </div>
+            <div class="about_story_image">
+                <img src="~/images/logo.png" alt="Runners at a marathon" class="about_image">
+            </div>
+        </div>
+    </section>
+
+    <section class="about_values">
+        <div class="about_section_head">
+            <h2 class="about_section_title">What we care about</h2>
+            <p class="about_section_text">The principles behind how the platform works.</p>
+        </div>
+
+        <div class="about_values_grid">
+            <article class="about_value_card">
+                <div class="about_value_icon"><i class="fa fa-bolt"></i></div>
+                <h3 class="about_value_title">Simplicity</h3>
+                <p class="about_value_text">Creating and joining events should take minutes, not days.</p>
+            </article>
+
+            <article class="about_value_card">
+                <div class="about_value_icon"><i class="fa fa-users"></i></div>
+                <h3 class="about_value_title">Community</h3>
+                <p class="about_value_text">Running is better when organizers and participants are connected.</p>
+            </article>
+
+            <article class="about_value_card">
+                <div class="about_value_icon"><i class="fa fa-tags"></i></div>
+                <h3 class="about_value_title">Flexibility</h3>
+                <p class="about_value_text">Every race is different, categories should adapt to your event.</p>
+            </article>
+
+            <article class="about_value_card">
+                <div class="about_value_icon"><i class="fa fa-shield"></i></div>
+                <h3 class="about_value_title">Trust</h3>
+                <p class="about_value_text">Clear registration, clear categories, clear participant lists.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="about_numbers">
+        <div class="about_numbers_grid">
+            <article class="about_number_card">
+                <div class="about_number_image">
+                    <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=400&q=80" alt="Events hosted" class="about_number_img">
+                </div>
+                <h3 class="about_number_value">120+</h3>
+                <p class="about_number_label">Events hosted</p>
+                <p class="about_value_text" style="text-align: start;">Clear registration, clear categories, clear participant lists.</p>
+            </article>
+
+            <article class="about_number_card">
+                <div class="about_number_image">
+                    <img src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=400&q=80" alt="Participants" class="about_number_img">
+                </div>
+                <h3 class="about_number_value">8,500</h3>
+                <p class="about_number_label">Participants</p>
+                <p class="about_value_text" style="text-align: start;">A growing community of runners joining events across the platform.</p>
+            </article>
+
+            <article class="about_number_card">
+                <div class="about_number_image">
+                    <img src="https://images.unsplash.com/photo-1571008887538-b36bb32f4571?auto=format&fit=crop&w=400&q=80" alt="Longest race" class="about_number_img">
+                </div>
+                <h3 class="about_number_value">42km</h3>
+                <p class="about_number_label">Longest race</p>
+                <p class="about_value_text" style="text-align: start;">From short fun runs to full marathons, every distance has a place.</p>
+            </article>
+
+            <article class="about_number_card">
+                <div class="about_number_image">
+                    <img src="https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=400&q=80" alt="Free to join" class="about_number_img">
+                </div>
+                <h3 class="about_number_value">100%</h3>
+                <p class="about_number_label">Free to join</p>
+                <p class="about_value_text" style="text-align: start;">Creating an account, browsing, and joining events costs nothing.</p>
+            </article>
+        </div>
+    </section>
+
+
+
+
+
+    <section class="about_cta">
+        <div class="about_cta_overlay"></div>
+        <div class="about_cta_inner">
+            <h2 class="about_cta_title">Ready to get started?</h2>
+            <p class="about_cta_text">Create an account to organize an event or join one as a participant.</p>
+            <div class="about_actions about_actions_center">
+                <a class="about_btn about_btn_primary" href="/register">
+                    <i class="fa fa-user-plus"></i>
+                    <span>Register</span>
+                </a>
+                <a class="about_btn about_btn_outline" href="/login">
+                    <i class="fa fa-sign-in"></i>
+                    <span>Login</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+@await Html.PartialAsync("_footer")

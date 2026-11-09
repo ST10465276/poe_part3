@@ -1,0 +1,599 @@
+﻿@using part_2API.backend
+@model part3_poe.Models.ProfileUpdate
+
+@{
+    Layout = null;
+    var userId = Context.Session.GetString("user_id") ?? "";
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userEmail = Context.Session.GetString("user_email") ?? "Not set";
+    var userRole = Context.Session.GetString("user_role") ?? "Participant";
+
+    var successMsg = TempData["ProfileSuccess"] as string;
+    var errorMsg = TempData["ProfileError"] as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background: #ffffff;
+            }
+
+            body {
+                font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+                background: #ffffff;
+                color: #333;
+                padding: 0;
+                margin: 0;
+            }
+
+            .profile_banner {
+                position: relative;
+                width: 100%;
+                margin: 0 0 2.5rem;
+                background-image: url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                padding: 5rem 2rem;
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .profile_banner_overlay {
+                position: absolute;
+                inset: 0;
+                background-color: rgba(128, 128, 128, 0.6);
+                z-index: 1;
+            }
+
+            .profile_banner_content {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                text-align: left;
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                gap: 1.5rem;
+            }
+
+            .profile_banner_avatar {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 90px;
+                height: 90px;
+                border-radius: 50%;
+                background: #000;
+                color: #fff;
+                font-size: 2rem;
+                flex-shrink: 0;
+                border: 3px solid #ffffff;
+                overflow: hidden;
+            }
+
+            .profile_banner_text h1 {
+                color: #ffffff;
+                font-size: 2.25rem;
+                font-weight: 700;
+                line-height: 1.1;
+                margin: 0 0 0.35rem;
+                letter-spacing: -0.5px;
+            }
+
+            .profile_banner_text .sub {
+                color: #e6e6e6;
+                font-size: 1rem;
+                margin: 0;
+            }
+
+                .profile_banner_text .sub strong {
+                    color: #ffffff;
+                }
+
+            .profile_content {
+                padding: 0 2rem 2rem;
+                max-width: 900px;
+                margin: 0 auto;
+            }
+
+            .profile_flash {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.85rem 1rem;
+                border-radius: 5px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+                line-height: 1.5;
+            }
+
+            .profile_flash_success {
+                background: #e8f5e8;
+                color: #2f6b2f;
+            }
+
+            .profile_flash_error {
+                background: #fbeaea;
+                color: #c0392b;
+            }
+
+            .profile_flash i {
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+
+            .profile_card {
+                background: #ffffff;
+                border: 1px solid #ececec;
+                border-radius: 5px;
+                padding: 2rem;
+            }
+
+            .profile_head {
+                margin-bottom: 1.75rem;
+            }
+
+            .profile_title {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.35rem;
+            }
+
+            .profile_text {
+                font-size: 0.85rem;
+                color: #777;
+                margin: 0;
+                line-height: 1.6;
+            }
+
+            .profile_list {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .profile_item {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 1rem 0;
+                border-bottom: 1px solid #f2f2f2;
+            }
+
+                .profile_item:last-child {
+                    border-bottom: none;
+                }
+
+            .profile_item_icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 42px;
+                height: 42px;
+                border-radius: 5px;
+                background: #000;
+                color: #fff;
+                font-size: 1rem;
+                flex-shrink: 0;
+            }
+
+            .profile_item_body {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .profile_item_label {
+                font-size: 0.72rem;
+                font-weight: 600;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin: 0 0 0.2rem;
+            }
+
+            .profile_item_value {
+                font-size: 1rem;
+                font-weight: 600;
+                color: #000;
+                margin: 0;
+                word-break: break-word;
+            }
+
+            .profile_role_badge {
+                display: inline-block;
+                padding: 0.3rem 0.75rem;
+                background: #000;
+                color: #fff;
+                border-radius: 5px;
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .profile_actions {
+                display: flex;
+                gap: 0.75rem;
+                margin-top: 1.75rem;
+                flex-wrap: wrap;
+            }
+
+            .profile_btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1.25rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.8rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+                text-decoration: none;
+                transition: background-color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .profile_btn_primary {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .profile_btn_primary:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .profile_modal {
+                position: fixed;
+                inset: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0, 0, 0, 0.55);
+                z-index: 500;
+                padding: 1rem;
+            }
+
+            .profile_modal_open {
+                display: flex;
+            }
+
+            .profile_modal_box {
+                background: #ffffff;
+                border-radius: 8px;
+                max-width: 460px;
+                width: 100%;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+                animation: profile_modal_in 0.25s ease;
+                position: relative;
+                padding: 2rem;
+            }
+
+            @@keyframes profile_modal_in {
+                from {
+                    opacity: 0;
+                    transform: translateY(12px) scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            .profile_modal_close {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: #f2f2f2;
+                color: #555;
+                border: none;
+                cursor: pointer;
+                font-size: 0.9rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+                .profile_modal_close:hover {
+                    background: #e6e6e6;
+                }
+
+            .profile_modal_head {
+                margin-bottom: 1.5rem;
+            }
+
+            .profile_modal_title {
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.35rem;
+            }
+
+            .profile_modal_text {
+                font-size: 0.85rem;
+                color: #777;
+                line-height: 1.6;
+                margin: 0;
+            }
+
+            .profile_field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+                margin-bottom: 1rem;
+            }
+
+            .profile_label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #333;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .profile_input {
+                width: 100%;
+                padding: 0.75rem 0.9rem;
+                border: 1px solid #e5e5e5;
+                border-radius: 5px;
+                background: #fff;
+                color: #333;
+                font-family: inherit;
+                font-size: 0.9rem;
+                outline: none;
+                box-sizing: border-box;
+            }
+
+                .profile_input:focus {
+                    border-color: #000;
+                }
+
+            .profile_error {
+                font-size: 0.75rem;
+                color: #c0392b;
+                margin-top: 0.15rem;
+            }
+
+            .profile_modal_actions {
+                display: flex;
+                gap: 0.75rem;
+                margin-top: 1.5rem;
+            }
+
+            .profile_modal_btn {
+                flex: 1;
+                padding: 0.75rem 1rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.8rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+            }
+
+            .profile_modal_btn_light {
+                background: #fff;
+                color: #555;
+                border-color: #e5e5e5;
+            }
+
+                .profile_modal_btn_light:hover {
+                    background: #f2f2f2;
+                }
+
+            .profile_modal_btn_dark {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .profile_modal_btn_dark:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            @@media (max-width: 600px) {
+                .profile_banner {
+                    padding: 3rem 1rem;
+                }
+
+                .profile_banner_content {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 1rem;
+                }
+
+                .profile_banner_text h1 {
+                    font-size: 1.6rem;
+                }
+
+                .profile_content {
+                    padding: 0 1rem 1.5rem;
+                }
+
+                .profile_card {
+                    padding: 1.5rem;
+                }
+
+                .profile_actions {
+                    flex-direction: column;
+                }
+
+                .profile_btn {
+                    width: 100%;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <section class="profile_banner">
+        <div class="profile_banner_overlay"></div>
+        <div class="profile_banner_content">
+            <div class="profile_banner_avatar">
+                <i class="fa fa-user"></i>
+            </div>
+            <div class="profile_banner_text">
+                <h1>@userName</h1>
+                <p class="sub">You are logged in as <strong>@userRole</strong>.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="profile_content">
+
+        @if (!string.IsNullOrEmpty(successMsg))
+        {
+            <div class="profile_flash profile_flash_success">
+                <i class="fa fa-check-circle"></i>
+                <span>@successMsg</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="profile_flash profile_flash_error">
+                <i class="fa fa-exclamation-circle"></i>
+                <span>@errorMsg</span>
+            </div>
+        }
+
+        <div class="profile_card">
+            <div class="profile_head">
+                <h2 class="profile_title">Profile details</h2>
+                <p class="profile_text">Your account information from this session.</p>
+            </div>
+
+            <ul class="profile_list">
+                <li class="profile_item">
+                    <span class="profile_item_icon"><i class="fa fa-user"></i></span>
+                    <div class="profile_item_body">
+                        <p class="profile_item_label">Full name</p>
+                        <p class="profile_item_value">@userName</p>
+                    </div>
+                </li>
+
+                <li class="profile_item">
+                    <span class="profile_item_icon"><i class="fa fa-envelope"></i></span>
+                    <div class="profile_item_body">
+                        <p class="profile_item_label">Email address</p>
+                        <p class="profile_item_value">@userEmail</p>
+                    </div>
+                </li>
+
+                <li class="profile_item">
+                    <span class="profile_item_icon"><i class="fa fa-id-badge"></i></span>
+                    <div class="profile_item_body">
+                        <p class="profile_item_label">Role</p>
+                        <p class="profile_item_value"><span class="profile_role_badge">@userRole</span></p>
+                    </div>
+                </li>
+
+            </ul>
+
+            <div class="profile_actions">
+                <button type="button" class="profile_btn profile_btn_primary" id="openUpdateModal">
+                    <i class="fa fa-pencil"></i>
+                    <span>Update details</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile_modal" id="updateDetailsModal">
+        <div class="profile_modal_box">
+            <button type="button" class="profile_modal_close" id="closeUpdateModal" aria-label="Close">
+                <i class="fa fa-times"></i>
+            </button>
+
+            <div class="profile_modal_head">
+                <h3 class="profile_modal_title">Update profile details</h3>
+                <p class="profile_modal_text">Change your name or email. Both fields are required.</p>
+            </div>
+
+            <form method="post" asp-controller="Home" asp-action="UpdateProfileDetails">
+                @Html.AntiForgeryToken()
+
+                <div class="profile_field">
+                    <label class="profile_label" asp-for="FullName">Full name</label>
+                    <input class="profile_input" asp-for="FullName" type="text" value="@userName" maxlength="100" required>
+                    <span class="profile_error" asp-validation-for="FullName"></span>
+                </div>
+
+                <div class="profile_field">
+                    <label class="profile_label" asp-for="Email">Email</label>
+                    <input class="profile_input" asp-for="Email" type="email" value="@userEmail" maxlength="150" required>
+                    <span class="profile_error" asp-validation-for="Email"></span>
+                </div>
+
+                <div class="profile_modal_actions">
+                    <button type="button" class="profile_modal_btn profile_modal_btn_light" id="cancelUpdateModal">Cancel</button>
+                    <button type="submit" class="profile_modal_btn profile_modal_btn_dark">
+                        <i class="fa fa-check"></i> Save changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+            (function () {
+                const modal = document.getElementById('updateDetailsModal');
+                const openBtn = document.getElementById('openUpdateModal');
+                const closeBtn = document.getElementById('closeUpdateModal');
+                const cancelBtn = document.getElementById('cancelUpdateModal');
+
+                function openModal() {
+                    modal.classList.add('profile_modal_open');
+                }
+
+                function closeModal() {
+                    modal.classList.remove('profile_modal_open');
+                }
+
+                openBtn.addEventListener('click', openModal);
+                closeBtn.addEventListener('click', closeModal);
+                cancelBtn.addEventListener('click', closeModal);
+
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) closeModal();
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape' && modal.classList.contains('profile_modal_open')) {
+                        closeModal();
+                    }
+                });
+            })();
+    </script>
+
+</body>
+</html>

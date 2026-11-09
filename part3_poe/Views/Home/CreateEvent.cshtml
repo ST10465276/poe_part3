@@ -1,0 +1,664 @@
+﻿@using System.Data.SqlClient
+@using part_2API.backend
+@model part3_poe.Models.EventCreate
+
+@{
+    Layout = null;
+    var userName = Context.Session.GetString("user_name") ?? "User";
+    var userId = Context.Session.GetString("user_id") ?? "0";
+    int organizer_id = Int32.Parse(userId);
+
+    manage_categories categories_manager = new manage_categories();
+    var myCategories = new List<Dictionary<string, object>>();
+
+    SqlDataReader read_categories = categories_manager.view_categoriesSite(organizer_id);
+
+    try
+    {
+        while (read_categories.Read())
+        {
+            var row = new Dictionary<string, object>
+            {
+                { "id", read_categories["id"] },
+                { "name", read_categories["name"] }
+            };
+            myCategories.Add(row);
+        }
+    }
+    finally
+    {
+        read_categories.Close();
+    }
+
+    var errorMsg = TempData["EventError"] as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                width: 100%;
+                background: #ffffff;
+            }
+
+            body {
+                font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+                background: #ffffff;
+                color: #333;
+                padding: 0;
+                margin: 0;
+            }
+
+            .create_banner {
+                position: relative;
+                width: 100%;
+                margin: 0 0 2.5rem;
+                background-image: url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                padding: 5rem 2rem;
+                box-sizing: border-box;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+
+            .create_banner_overlay {
+                position: absolute;
+                inset: 0;
+                background-color: rgba(128, 128, 128, 0.6);
+                z-index: 1;
+            }
+
+            .create_banner_content {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                text-align: left;
+                color: #ffffff;
+            }
+
+                .create_banner_content h1 {
+                    color: #ffffff;
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    line-height: 1.1;
+                    margin: 0 0 0.6rem;
+                    letter-spacing: -0.5px;
+                }
+
+                .create_banner_content .sub {
+                    color: #e6e6e6;
+                    font-size: 1.05rem;
+                    line-height: 1.7;
+                    margin: 0;
+                }
+
+            .create_content {
+                padding: 0 2rem 2rem;
+                max-width: 900px;
+                margin: 0 auto;
+            }
+
+            .create_flash {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.85rem 1rem;
+                border-radius: 5px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+                line-height: 1.5;
+                background: #fbeaea;
+                color: #c0392b;
+            }
+
+                .create_flash i {
+                    flex-shrink: 0;
+                    margin-top: 2px;
+                }
+
+            .create_card {
+                background: #ffffff;
+                border: 1px solid #ececec;
+                border-radius: 5px;
+                padding: 2rem;
+            }
+
+            .create_steps {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .create_step {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                flex: 1;
+            }
+
+            .create_step_bubble {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: #f2f2f2;
+                color: #888;
+                font-size: 0.8rem;
+                font-weight: 700;
+                flex-shrink: 0;
+                transition: background-color 0.2s ease, color 0.2s ease;
+            }
+
+            .create_step_label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+            }
+
+            .create_step_active .create_step_bubble {
+                background: #000;
+                color: #fff;
+            }
+
+            .create_step_active .create_step_label {
+                color: #000;
+            }
+
+            .create_step_done .create_step_bubble {
+                background: #000;
+                color: #fff;
+            }
+
+            .create_step_done .create_step_label {
+                color: #000;
+            }
+
+            .create_step_line {
+                flex: 1;
+                height: 1px;
+                background: #e5e5e5;
+                margin: 0 0.5rem;
+            }
+
+            .create_panel {
+                display: none;
+            }
+
+            .create_panel_active {
+                display: block;
+            }
+
+            .create_head {
+                margin-bottom: 1.75rem;
+            }
+
+            .create_title {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #000;
+                margin: 0 0 0.35rem;
+            }
+
+            .create_text {
+                font-size: 0.85rem;
+                color: #777;
+                margin: 0;
+                line-height: 1.6;
+            }
+
+            .create_row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .create_field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+                margin-bottom: 1rem;
+            }
+
+            .create_label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #333;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .create_input {
+                width: 100%;
+                padding: 0.75rem 0.9rem;
+                border: 1px solid #e5e5e5;
+                border-radius: 5px;
+                background: #ffffff;
+                color: #333;
+                font-family: inherit;
+                font-size: 0.9rem;
+                outline: none;
+                transition: border-color 0.15s ease;
+                box-sizing: border-box;
+            }
+
+                .create_input::placeholder {
+                    color: #999;
+                }
+
+                .create_input:focus {
+                    border-color: #000;
+                }
+
+                .create_input[type="file"] {
+                    padding: 0.55rem 0.9rem;
+                    cursor: pointer;
+                }
+
+                    .create_input[type="file"]::file-selector-button {
+                        padding: 0.45rem 0.85rem;
+                        margin-right: 0.75rem;
+                        border: none;
+                        border-radius: 4px;
+                        background: #000;
+                        color: #fff;
+                        font-family: inherit;
+                        font-size: 0.8rem;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        cursor: pointer;
+                    }
+
+                        .create_input[type="file"]::file-selector-button:hover {
+                            background: #333;
+                        }
+
+            .create_textarea {
+                resize: vertical;
+                min-height: 90px;
+            }
+
+            .create_select {
+                cursor: pointer;
+                appearance: none;
+                background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+                background-repeat: no-repeat;
+                background-position: right 1rem center;
+                background-size: 16px;
+                padding-right: 2.5rem;
+            }
+
+            .create_error {
+                font-size: 0.75rem;
+                color: #c0392b;
+                margin-top: 0.15rem;
+            }
+
+            .create_actions {
+                display: flex;
+                gap: 0.75rem;
+                margin-top: 1.5rem;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
+            .create_actions_right {
+                display: flex;
+                gap: 0.75rem;
+                margin-left: auto;
+            }
+
+            .create_btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                padding: 0.85rem 1.5rem;
+                border-radius: 5px;
+                font-family: inherit;
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                border: 1px solid transparent;
+                text-decoration: none;
+                transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            }
+
+            .create_btn_primary {
+                background: #000;
+                color: #fff;
+                border-color: #000;
+            }
+
+                .create_btn_primary:hover {
+                    background: #333;
+                    border-color: #333;
+                }
+
+            .create_btn_light {
+                background: #ffffff;
+                color: #555;
+                border-color: #e5e5e5;
+            }
+
+                .create_btn_light:hover {
+                    background: #f2f2f2;
+                }
+
+            .create_empty_cat {
+                padding: 1rem;
+                background: #f7f7f7;
+                border-radius: 5px;
+                font-size: 0.85rem;
+                color: #888;
+                margin-bottom: 1rem;
+            }
+
+            @@media (max-width: 700px) {
+                .create_banner {
+                    padding: 3.5rem 1.25rem;
+                }
+
+                .create_banner_content h1 {
+                    font-size: 1.9rem;
+                }
+
+                .create_content {
+                    padding: 0 1rem 1.5rem;
+                }
+
+                .create_card {
+                    padding: 1.5rem;
+                }
+
+                .create_row {
+                    grid-template-columns: 1fr;
+                }
+
+                .create_actions {
+                    flex-direction: column-reverse;
+                    align-items: stretch;
+                }
+
+                .create_actions_right {
+                    flex-direction: column;
+                    margin-left: 0;
+                }
+
+                .create_btn {
+                    width: 100%;
+                }
+
+                .create_step_label {
+                    display: none;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <section class="create_banner">
+        <div class="create_banner_overlay"></div>
+        <div class="create_banner_content">
+            <h1>Create an event</h1>
+            <p class="sub">Fill in the details below to publish a new marathon event for participants to join.</p>
+        </div>
+    </section>
+
+    <div class="create_content">
+
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="create_flash">
+                <i class="fa fa-exclamation-circle"></i>
+                <span>@errorMsg</span>
+            </div>
+        }
+        else if (TempData["EventSuccess"]!=null)
+            {
+            <div class="create_flash" style="background-color:green">
+                
+                <span style="color:white">@TempData["EventSuccess"]</span>
+            </div>
+            }
+
+        @if (myCategories.Count == 0)
+        {
+            <div class="create_empty_cat">
+                You need at least one category before creating an event. <a asp-controller="Home" asp-action="Categories" style="color:#000;font-weight:600;">Create a category first</a>.
+            </div>
+        }
+
+        <div class="create_card">
+
+            <div class="create_steps">
+                <div class="create_step create_step_active" data-step="1">
+                    <span class="create_step_bubble">1</span>
+                    <span class="create_step_label">Basic info</span>
+                </div>
+                <div class="create_step_line"></div>
+                <div class="create_step" data-step="2">
+                    <span class="create_step_bubble">2</span>
+                    <span class="create_step_label">Schedule</span>
+                </div>
+                <div class="create_step_line"></div>
+                <div class="create_step" data-step="3">
+                    <span class="create_step_bubble">3</span>
+                    <span class="create_step_label">Category &amp; image</span>
+                </div>
+            </div>
+
+            <form method="post" asp-controller="Home" asp-action="CreateEvent" enctype="multipart/form-data" id="createEventForm">
+                @Html.AntiForgeryToken()
+
+                <div class="create_panel create_panel_active" data-panel="1">
+                    <div class="create_head">
+                        <h2 class="create_title"> Basic info</h2>
+                        <p class="create_text">Give your event a name and a short description.</p>
+                    </div>
+
+                    <div class="create_field">
+                        <label class="create_label" asp-for="EventName">Event name *</label>
+                        <input class="create_input" asp-for="EventName" type="text" placeholder="e.g. Johannesburg City Marathon" maxlength="60">
+                        <span class="create_error" asp-validation-for="EventName"></span>
+                    </div>
+
+                    <div class="create_field">
+                        <label class="create_label" asp-for="Description">Description</label>
+                        <textarea class="create_input create_textarea" asp-for="Description" placeholder="What is this event about?" maxlength="255"></textarea>
+                        <span class="create_error" asp-validation-for="Description"></span>
+                    </div>
+
+                    <div class="create_actions">
+                        <div class="create_actions_right">
+                            <button type="button" class="create_btn create_btn_primary" data-next="2">
+                                <span>Next</span>
+                                <i class="fa fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="create_panel" data-panel="2">
+                    <div class="create_head">
+                        <h2 class="create_title"> Schedule &amp; location</h2>
+                        <p class="create_text">When and where is the event happening?</p>
+                    </div>
+
+                    <div class="create_row">
+                        <div class="create_field">
+                            <label class="create_label" asp-for="Date">Event date *</label>
+                            <input class="create_input" asp-for="Date" type="date">
+                            <span class="create_error" asp-validation-for="Date"></span>
+                        </div>
+
+                        <div class="create_field">
+                            <label class="create_label" asp-for="StartTime">Start time *</label>
+                            <input class="create_input" asp-for="StartTime" type="time">
+                            <span class="create_error" asp-validation-for="StartTime"></span>
+                        </div>
+                    </div>
+
+                    <div class="create_field">
+                        <label class="create_label" asp-for="Location">Location *</label>
+                        <input class="create_input" asp-for="Location" type="text" placeholder="e.g. Johannesburg CBD" maxlength="70">
+                        <span class="create_error" asp-validation-for="Location"></span>
+                    </div>
+
+                    <div class="create_row">
+                        <div class="create_field">
+                            <label class="create_label" asp-for="Distance">Distance (km) *</label>
+                            <input class="create_input" asp-for="Distance" type="number" step="0.01" min="0.01" max="999.99" placeholder="e.g. 42.00">
+                            <span class="create_error" asp-validation-for="Distance"></span>
+                        </div>
+
+                        <div class="create_field">
+                            <label class="create_label" asp-for="EventType">Event type *</label>
+                            <input class="create_input" asp-for="EventType" type="text" placeholder="e.g. Marathon, Half Marathon, Fun Run" maxlength="60">
+                            <span class="create_error" asp-validation-for="EventType"></span>
+                        </div>
+                    </div>
+
+                    <div class="create_actions">
+                        <button type="button" class="create_btn create_btn_light" data-prev="1">
+                            <i class="fa fa-arrow-left"></i>
+                            <span>Back</span>
+                        </button>
+                        <div class="create_actions_right">
+                            <button type="button" class="create_btn create_btn_primary" data-next="3">
+                                <span>Next</span>
+                                <i class="fa fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="create_panel" data-panel="3">
+                    <div class="create_head">
+                        <h2 class="create_title">Category &amp; image</h2>
+                        <p class="create_text">Pick a category and add an image for the event card.</p>
+                    </div>
+
+                    <div class="create_row">
+                        <div class="create_field">
+                            <label class="create_label" asp-for="Age">Minimum age *</label>
+                            <input class="create_input" asp-for="Age" type="number" min="0" max="120" placeholder="e.g. 18">
+                            <span class="create_error" asp-validation-for="Age"></span>
+                        </div>
+
+                        <div class="create_field">
+                            <label class="create_label" asp-for="CategoryId">Category *</label>
+                            <select class="create_input create_select" asp-for="CategoryId">
+                                <option value="">Select a category</option>
+                                @foreach (var c in myCategories)
+                                {
+                                    <option value="@c["id"]">@c["name"]</option>
+                                }
+                            </select>
+                            <span class="create_error" asp-validation-for="CategoryId"></span>
+                        </div>
+                    </div>
+
+                    <div class="create_field">
+                        <label class="create_label" asp-for="ImageFile">Event image</label>
+                        <input class="create_input" asp-for="ImageFile" type="file" accept="image/*">
+                        <span class="create_error" asp-validation-for="ImageFile"></span>
+                    </div>
+
+                    <div class="create_actions">
+                        <button type="button" class="create_btn create_btn_light" data-prev="2">
+                            <i class="fa fa-arrow-left"></i>
+                            <span>Back</span>
+                        </button>
+                        <div class="create_actions_right">
+                            <a class="create_btn create_btn_light" asp-controller="Home" asp-action="MyEvents">
+                                <span>Cancel</span>
+                            </a>
+                            <button class="create_btn create_btn_primary" type="submit" @(myCategories.Count == 0 ? "disabled" : "")>
+                                <i class="fa fa-check"></i>
+                                <span>Create event</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+            (function () {
+                const form = document.getElementById('createEventForm');
+                const panels = form.querySelectorAll('.create_panel');
+                const steps = document.querySelectorAll('.create_step');
+
+                function showStep(n) {
+                    panels.forEach(function (p) {
+                        p.classList.toggle('create_panel_active', p.getAttribute('data-panel') === String(n));
+                    });
+
+                    steps.forEach(function (s) {
+                        const stepNum = parseInt(s.getAttribute('data-step'), 10);
+                        s.classList.toggle('create_step_active', stepNum === n);
+                        s.classList.toggle('create_step_done', stepNum < n);
+                    });
+
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
+                function validatePanel(n) {
+                    const panel = form.querySelector('.create_panel[data-panel="' + n + '"]');
+                    const fields = panel.querySelectorAll('input, select, textarea');
+                    let valid = true;
+
+                    fields.forEach(function (f) {
+                        if (!f.checkValidity()) {
+                            f.reportValidity();
+                            valid = false;
+                        }
+                    });
+
+                    return valid;
+                }
+
+                form.addEventListener('click', function (e) {
+                    const nextBtn = e.target.closest('[data-next]');
+                    const prevBtn = e.target.closest('[data-prev]');
+
+                    if (nextBtn) {
+                        const from = parseInt(nextBtn.closest('.create_panel').getAttribute('data-panel'), 10);
+                        if (validatePanel(from)) {
+                            showStep(parseInt(nextBtn.getAttribute('data-next'), 10));
+                        }
+                    }
+
+                    if (prevBtn) {
+                        showStep(parseInt(prevBtn.getAttribute('data-prev'), 10));
+                    }
+                });
+            })();
+    </script>
+
+</body>
+</html>
